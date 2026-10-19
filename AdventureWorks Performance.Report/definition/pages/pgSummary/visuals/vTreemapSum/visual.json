@@ -498,7 +498,7 @@
             "text": {
               "expr": {
                 "Literal": {
-                  "Value": "'Area is sales; colour is category. Click to filter the page'"
+                  "Value": "'Area is sales; colour is category. Hover for the trend, click to filter'"
                 }
               }
             },
@@ -517,6 +517,33 @@
                       "Value": "'#667284'"
                     }
                   }
+                }
+              }
+            }
+          }
+        }
+      ],
+      "visualTooltip": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "type": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Canvas'"
+                }
+              }
+            },
+            "section": {
+              "expr": {
+                "Literal": {
+                  "Value": "'pgTipTrend'"
                 }
               }
             }

@@ -553,7 +553,7 @@
             "text": {
               "expr": {
                 "Literal": {
-                  "Value": "'Ranked by sales'"
+                  "Value": "'Ranked by sales. Right-click a region for its detail page'"
                 }
               }
             },

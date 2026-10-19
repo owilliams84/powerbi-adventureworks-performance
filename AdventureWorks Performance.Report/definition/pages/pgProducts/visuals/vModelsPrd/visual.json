@@ -477,7 +477,7 @@
             "text": {
               "expr": {
                 "Literal": {
-                  "Value": "'The 7 most and 3 least profitable models. Grey bars lose money'"
+                  "Value": "'The 7 most and 3 least profitable; grey loses money. Right-click to drill'"
                 }
               }
             },

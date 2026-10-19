@@ -494,7 +494,7 @@
             "text": {
               "expr": {
                 "Literal": {
-                  "Value": "'Ranked by sales in the year on screen'"
+                  "Value": "'Ranked by sales in the year on screen. Right-click one for its detail'"
                 }
               }
             },

@@ -646,7 +646,7 @@
             "text": {
               "expr": {
                 "Literal": {
-                  "Value": "'Across is sales on a log scale, up is gross margin, size is units sold. Click to filter'"
+                  "Value": "'Across is sales on a log scale, up is gross margin, size is units sold. Hover for the trend'"
                 }
               }
             },
@@ -665,6 +665,33 @@
                       "Value": "'#667284'"
                     }
                   }
+                }
+              }
+            }
+          }
+        }
+      ],
+      "visualTooltip": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "type": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Canvas'"
+                }
+              }
+            },
+            "section": {
+              "expr": {
+                "Literal": {
+                  "Value": "'pgTipTrend'"
                 }
               }
             }

@@ -489,7 +489,7 @@
             "text": {
               "expr": {
                 "Literal": {
-                  "Value": "'Ranked by sales; scroll for all ten. Click one to filter the page'"
+                  "Value": "'Hover for the trend; right-click a region for its detail page'"
                 }
               }
             },
@@ -508,6 +508,33 @@
                       "Value": "'#667284'"
                     }
                   }
+                }
+              }
+            }
+          }
+        }
+      ],
+      "visualTooltip": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "type": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Canvas'"
+                }
+              }
+            },
+            "section": {
+              "expr": {
+                "Literal": {
+                  "Value": "'pgTipTrend'"
                 }
               }
             }

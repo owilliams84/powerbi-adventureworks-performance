@@ -21,16 +21,23 @@ ROOT = Path(__file__).resolve().parents[1]
 SHOTS = ROOT / "screenshots"
 BAND = (0x0A, 0x09, 0x17)
 PAGES = {"pgSummary": "01-executive-summary", "pgProducts": "02-products-and-margin",
-         "pgCustomers": "03-customers-and-channels", "pgRegions": "04-regions-and-discounts"}
+         "pgCustomers": "03-customers-and-channels", "pgRegions": "04-regions-and-discounts",
+         "pgProductDetail": "05-drill-product-detail", "pgRegionDetail": "06-drill-region-detail",
+         "pgTipTrend": "07-tooltip-trend"}
+# The tooltip page has no brand band: find it by the gold rule along the top of its card. The
+# rule is drawn inside an SVG image, which Desktop renders lighter than #C9A227.
+GOLD = (195, 163, 66)
+SHAPE = {"pgTipTrend": (GOLD, 240 / 320, 0.15)}
 
 
-def find_canvas(im: Image.Image) -> tuple[int, int, int, int]:
+def find_canvas(im: Image.Image, band=BAND, aspect: float = 900 / 1440,
+                min_share: float = 0.6) -> tuple[int, int, int, int]:
     px = im.load()
     w, h = im.size
     for y in range(h):
         run_start, best = None, (0, 0, 0)
         for x in range(w):
-            close = all(abs(px[x, y][i] - BAND[i]) <= 6 for i in range(3))
+            close = all(abs(px[x, y][i] - band[i]) <= 6 for i in range(3))
             if close and run_start is None:
                 run_start = x
             elif not close and run_start is not None:
@@ -39,10 +46,10 @@ def find_canvas(im: Image.Image) -> tuple[int, int, int, int]:
                 run_start = None
         if run_start is not None and w - run_start > best[0]:
             best = (w - run_start, run_start, w)
-        if best[0] > w * 0.6:
+        if best[0] > w * min_share:
             left, right = best[1], best[2]
             width = right - left
-            return left, y, right, y + round(width * 900 / 1440)
+            return left, y, right, y + round(width * aspect)
     raise SystemExit("no brand band found - is this a capture of the report?")
 
 
@@ -57,7 +64,7 @@ def main() -> None:
             print(f"  missing {src.name}, skipped")
             continue
         im = Image.open(src).convert("RGB")
-        box = find_canvas(im)
+        box = find_canvas(im, *SHAPE.get(page, ()))
         out = im.crop(box)
         out.save(SHOTS / f"{name}.png", optimize=True)
         print(f"  {name}.png {out.size[0]}x{out.size[1]} (from {src.name}, box {box})")

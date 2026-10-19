@@ -217,22 +217,22 @@ def page_summary():
         dyn_chrome("What changed on the year before", "Subtitle Waterfall"),
         sort(column("Product", "Category"), "Ascending")))
 
-    v.append(chart(
+    v.append(report_tooltip(chart(
         "vTreemapSum", "treemap", 492, 612, 452, 264, 630,
         {"Group": [column("Product", "Category")], "Details": [column("Product", "Subcategory")],
          "Values": [F.m("Sales")], "Tooltips": [F.m("Gross Margin %", "Gross margin")]},
         {"legend": legend(False), "labels": obj(show=lit(True), fontSize=lit(8.0)),
          "dataPoint": value_colours("Product", "Category", CATEGORY_COLOURS)},
-        chrome("Where sales come from", "Area is sales; colour is category. Click to filter the page")))
+        chrome("Where sales come from", "Area is sales; colour is category. Hover for the trend, click to filter"))))
 
-    v.append(chart(
+    v.append(report_tooltip(chart(
         "vRegionsSum", "barChart", 960, 612, 456, 264, 640,
         {"Category": [column("Territory", "Region")], "Y": [F.m("Sales")],
          "Tooltips": [F.m("Sales vs PY %", "vs prior year"), F.m("Gross Margin %", "Gross margin")]},
         {"categoryAxis": mb.axis(), "valueAxis": mb.axis(gridlines=True), "legend": legend(False),
          "labels": labels(True, 8.0, millions=True), "dataPoint": obj(fill=colour(NAVY))},
-        chrome("Top regions", "Ranked by sales; scroll for all ten. Click one to filter the page"),
-        sort(F.m("Sales"))))
+        chrome("Top regions", "Hover for the trend; right-click a region for its detail page"),
+        sort(F.m("Sales")))))
 
     pg = mb.page("pgSummary", "Executive summary")
     pg["visualInteractions"] = no_filter("vFYSum", ["vMonthlySum", "vSeasonSum"])
@@ -242,7 +242,7 @@ def page_summary():
 def page_products():
     v = header("Prd", "What sells, and what it earns", "02 / PRODUCTS AND MARGIN")
 
-    v.append(chart(
+    v.append(report_tooltip(chart(
         "vScatterPrd", "scatterChart", 24, 176, 900, 340, 500,
         {"Category": [column("Product", "Subcategory")], "Series": [column("Product", "Category")],
          "X": [F.m("Sales")], "Y": [F.m("Gross Margin %", "Gross margin")], "Size": [F.m("Units")]},
@@ -250,13 +250,13 @@ def page_products():
          "legend": legend(), "dataPoint": value_colours("Product", "Category", CATEGORY_COLOURS),
          "categoryLabels": obj(show=lit(True), fontSize=lit(8.0), color=colour(BODY))},
         chrome("Margin against sales, by subcategory",
-               "Across is sales on a log scale, up is gross margin, size is units sold. Click to filter")))
+               "Across is sales on a log scale, up is gross margin, size is units sold. Hover for the trend"))))
 
     v.append(table(
         "vTopProductsPrd", 940, 176, 476, 340, 510,
         [column("Product", "Product")],
         [F.m("Product Rank", "#"), F.m("Sales"), F.m("Bar Product Sales", " "), F.m("Gross Margin %", "Margin")],
-        chrome("Top 10 products", "Ranked by sales in the year on screen"),
+        chrome("Top 10 products", "Ranked by sales in the year on screen. Right-click one for its detail"),
         sort(F.m("Product Rank"), "Ascending"), [F.range_filter("fTop10Prd", "Product Rank", 1, 10)],
         image_width=90.0))
 
@@ -276,7 +276,7 @@ def page_products():
          "Tooltips": [F.m("Sales"), F.m("Gross Margin %", "Gross margin")]},
         {"categoryAxis": mb.axis(maxMarginFactor=lit(40)), "valueAxis": mb.axis(gridlines=True),
          "legend": legend(False), "labels": labels(False), "dataPoint": measure_fill("Model Profit Colour")},
-        chrome("Gross profit by model", "The 7 most and 3 least profitable models. Grey bars lose money"),
+        chrome("Gross profit by model", "The 7 most and 3 least profitable; grey loses money. Right-click to drill"),
         sort(F.m("Gross Profit")), [F.range_filter("fModelsPrd", "Model Shown", 1, 1)]))
 
     v.append(table(
@@ -371,7 +371,7 @@ def page_regions():
         [column("Territory", "Region")],
         [F.m("Sales"), F.m("Bar Region Sales", " "), F.m("Sales vs PY Label", "vs PY"),
          F.m("Sales Share of Regions", "Share"), F.m("Gross Margin %", "Margin"), F.m("Orders")],
-        chrome("Regions", "Ranked by sales"),
+        chrome("Regions", "Ranked by sales. Right-click a region for its detail page"),
         sort(F.m("Sales")), colour_rules=[("fontColor", "Growth Colour", "Sales vs PY Label")]))
 
     v.append(chart(
@@ -402,6 +402,198 @@ def page_regions():
         sort(column("Line Size", "Line Size"), "Ascending"), image_width=80.0))
 
     return mb.page("pgRegions", "Regions & discounts"), v
+
+
+# --------------------------------------------------------------------------------------------
+# Drill-through and tooltip pages
+# --------------------------------------------------------------------------------------------
+
+TIP_PAGE = "pgTipTrend"
+KPI_CARDS = ["Card Sales", "Card Gross Profit", "Card Gross Margin", "Card Orders", "Card Average Order",
+             "Card Customers"]
+KPI_X = [24, 258, 492, 727, 961, 1196]
+
+
+def report_tooltip(node: dict) -> dict:
+    """Hovering this visual shows the tooltip page instead of the default field list."""
+    node["visual"]["visualContainerObjects"]["visualTooltip"] = obj(
+        show=lit(True), type=lit("Canvas"), section=lit(TIP_PAGE))
+    return node
+
+
+def back_button(name: str) -> dict:
+    """Back to the page the drill-through came from: white on ink with a gold edge, level with
+    the slicer tiles. Ctrl+click in Desktop's edit mode, plain click in the Service."""
+    node = mb.action_button(name, 1296, 94, 120, 36, 420, "‹  Back", None, fill=INK, text_colour=CARD,
+                            outline=GOLD)
+    node["visual"]["visualContainerObjects"]["visualLink"] = obj(show=lit(True), type=lit("Back"))
+    return node
+
+
+def drill_header(slug: str, ref: str, title_measure: str, stand_measure: str) -> list[dict]:
+    """Masthead with a measure for the title, the standfirst, the shared slicers and Back.
+    The slicers sit left of Back; the title is narrower than on the overview pages."""
+    v = [n for n in mb.masthead(slug, "", ref) if not n["name"].startswith("vTitle")]
+    title = mb.dynamic_text(f"vTitle{slug}", 18, 70, 640, 42, 90, F.expr(title_measure), size=20.0, color=INK)
+    title["visual"]["visualContainerObjects"]["title"][0]["properties"]["bold"] = lit(True)
+    v += [title,
+          mb.dynamic_text(f"vStand{slug}", 18, 112, 640, 56, 95, F.expr(stand_measure), size=10.0)]
+    fy = fy_slicer(f"vFY{slug}", 400)
+    ch = channel_slicer(f"vCh{slug}", 410)
+    fy["position"].update(x=676, width=290)
+    ch["position"].update(x=982, width=298)
+    return v + [fy, ch, back_button(f"vBack{slug}")]
+
+
+def drill_page(name: str, display: str, fields: list[tuple[str, str, str]]) -> dict:
+    """A drill-through page, hidden from the page tabs. fields: (table, column, value the page
+    opens on when it is not reached by a drill). Each field is a filter with howCreated
+    Drillthrough plus a pageBinding parameter bound to it. Power BI offers the drill on any
+    visual that carries one of them (tested in the Service: the products table offers it with
+    Product alone, the models bar with Model alone) and clears the other."""
+    pg = mb.page(name, display)
+    pg["visibility"] = "HiddenInViewMode"
+    filters, params = [], []
+    for i, (table, col, default) in enumerate(fields):
+        fname = f"fDrill{name[2:]}{i}"
+        f = mb.categorical_filter(fname, table, col, [default])
+        if default is None:
+            del f["filter"]
+        f["howCreated"] = "Drillthrough"
+        filters.append(f)
+        params.append({"name": f"Param_{fname}", "boundFilter": fname, "fieldExpr": f["field"]})
+    pg["filterConfig"] = {"filters": filters}
+    # acceptsFilterContext None: only the drilled field comes across. With the default, the source
+    # page's year and channel arrived as page filters and cut each slicer here to a single tile;
+    # the slicers' sync groups carry the year and channel instead.
+    pg["pageBinding"] = {"name": f"Pod{name[2:]}", "type": "Drillthrough", "parameters": params,
+                         "acceptsFilterContext": "None"}
+    return pg
+
+
+def kpi_row(slug: str) -> list[dict]:
+    return [mb.svg_image(f"vCard{i + 1}{slug}", KPI_X[i], 176, 220, 120, 500 + i, F.expr(c))
+            for i, c in enumerate(KPI_CARDS)]
+
+
+def monthly_line(name: str, z: int, subtitle: str) -> dict:
+    return chart(
+        name, "lineChart", 24, 312, 776, 284, z,
+        {"Category": [column("Date", "Month Start", "Month")], "Series": [column("Channel", "Channel")],
+         "Y": [F.m("Sales Line", "Sales")]},
+        {"categoryAxis": mb.axis(axisType=lit("Scalar")), "valueAxis": mb.axis(gridlines=True),
+         "legend": legend(), "labels": labels(False),
+         "lineStyles": obj(strokeWidth=lit(2), showMarker=lit(False)),
+         "dataPoint": value_colours("Channel", "Channel", CHANNEL_COLOURS)},
+        chrome("Monthly sales by channel, all three years", subtitle),
+        sort(column("Date", "Month Start"), "Ascending"))
+
+
+def page_product_detail():
+    slug = "PD"
+    v = drill_header(slug, "DRILL-THROUGH / PRODUCT DETAIL", "Drill Product Title", "Drill Product Standfirst")
+    v += kpi_row(slug)
+    v.append(monthly_line(f"vMonthly{slug}", 600, "Jul 2017 to 15 Jun 2020. The year slicer does not apply"))
+
+    v.append(chart(
+        f"vMargin{slug}", "clusteredColumnChart", 816, 312, 600, 284, 610,
+        {"Category": [column("Date", "Month")],
+         "Y": [F.m("Gross Margin % PY", "Last year"), F.m("Gross Margin %", "This year")]},
+        {"categoryAxis": mb.axis(), "valueAxis": mb.axis(gridlines=True), "legend": legend(),
+         "labels": labels(False), "dataPoint": series_colours({"Gross Margin % PY": LIGHT, "Gross Margin %": NAVY})},
+        dyn_chrome("Margin against the prior year", "Subtitle Margin Month"),
+        sort(column("Date", "Month"), "Ascending")))
+
+    v.append(chart(
+        f"vRegions{slug}", "barChart", 24, 612, 452, 264, 620,
+        {"Category": [column("Territory", "Region")], "Y": [F.m("Sales")],
+         "Tooltips": [F.m("Sales vs PY %", "vs prior year"), F.m("Gross Margin %", "Gross margin")]},
+        {"categoryAxis": mb.axis(), "valueAxis": mb.axis(gridlines=True), "legend": legend(False),
+         "labels": labels(True, 8.0), "dataPoint": obj(fill=colour(NAVY))},
+        chrome("Top regions for it", "Ranked by sales; scroll for every region it sold in. Right-click to drill"),
+        sort(F.m("Sales"))))
+
+    v.append(chart(
+        f"vBuyers{slug}", "barChart", 492, 612, 452, 264, 630,
+        {"Category": [column("Reseller", "Buyer Type", "Buyer")], "Y": [F.m("Sales")],
+         "Tooltips": [F.m("Orders"), F.m("Gross Margin %", "Gross margin")]},
+        {"categoryAxis": mb.axis(), "valueAxis": mb.axis(gridlines=True), "legend": legend(False),
+         "labels": labels(True, 8.0), "dataPoint": obj(fill=colour(GOLD))},
+        chrome("Who buys it", "Sales by buyer type: internet shoppers or the reseller's business type"),
+        sort(F.m("Sales"))))
+
+    v.append(table(
+        f"vItems{slug}", 960, 612, 456, 264, 640,
+        [column("Product", "Product")],
+        [F.m("Sales"), F.m("Sales vs PY Label", "vs PY"), F.m("Gross Margin %", "Margin"), F.m("Units")],
+        chrome("Sizes and colours", "Every product in the drill, ranked by sales"),
+        sort(F.m("Sales")), image_width=None,
+        colour_rules=[("fontColor", "Growth Colour", "Sales vs PY Label")]))
+
+    pg = drill_page("pgProductDetail", "Product detail",
+                    [("Product", "Model", "Mountain-200"), ("Product", "Product", None)])
+    pg["visualInteractions"] = no_filter(f"vFY{slug}", [f"vMonthly{slug}"])
+    return pg, v
+
+
+def page_region_detail():
+    slug = "RD"
+    v = drill_header(slug, "DRILL-THROUGH / REGION DETAIL", "Drill Region Title", "Drill Region Standfirst")
+    v += kpi_row(slug)
+    v.append(monthly_line(f"vMonthly{slug}", 600, "Jul 2017 to 15 Jun 2020. The year slicer does not apply"))
+
+    v.append(chart(
+        f"vMix{slug}", "donutChart", 816, 312, 600, 284, 610,
+        {"Category": [column("Product", "Category")], "Y": [F.m("Sales")]},
+        {"legend": obj(show=lit(True), position=lit("Right"), showTitle=lit(False), fontSize=lit(9.0),
+                       labelColor=colour(MUTED)),
+         "labels": obj(show=lit(True), fontSize=lit(9.0), labelStyle=lit("Category, percent of total"),
+                       percentageLabelPrecision=lit(1)),
+         "dataPoint": value_colours("Product", "Category", CATEGORY_COLOURS)},
+        chrome("Category mix", "Share of the region's sales in the year on screen"),
+        sort(F.m("Sales"))))
+
+    v.append(table(
+        f"vTop{slug}", 24, 612, 452, 264, 620,
+        [column("Product", "Product")],
+        [F.m("Product Rank", "#"), F.m("Sales"), F.m("Bar Product Sales", " "), F.m("Gross Margin %", "Margin")],
+        chrome("Top 10 products here", "Ranked by sales in the region. Right-click a product to drill"),
+        sort(F.m("Product Rank"), "Ascending"), [F.range_filter(f"fTop10{slug}", "Product Rank", 1, 10)],
+        image_width=70.0))
+
+    v.append(chart(
+        f"vCatGrowth{slug}", "clusteredBarChart", 492, 612, 452, 264, 630,
+        {"Category": [column("Product", "Category")],
+         "Y": [F.m("Sales PY", "Last year"), F.m("Sales", "This year")],
+         "Tooltips": [F.m("Sales vs PY %", "Growth")]},
+        {"categoryAxis": mb.axis(), "valueAxis": mb.axis(gridlines=True), "legend": legend(),
+         "labels": labels(True, 8.0, millions=True),
+         "dataPoint": series_colours({"Sales PY": LIGHT, "Sales": NAVY})},
+        dyn_chrome("Growth on the prior year", "Subtitle Category Growth"),
+        sort(column("Product", "Category"), "Ascending")))
+
+    v.append(chart(
+        f"vSubGrowth{slug}", "barChart", 960, 612, 456, 264, 640,
+        {"Category": [column("Product", "Subcategory")], "Y": [F.m("Sales vs PY % Established", "Growth")],
+         "Tooltips": [F.m("Sales"), F.m("Sales PY", "Prior year")]},
+        {"categoryAxis": mb.axis(maxMarginFactor=lit(40)), "valueAxis": mb.axis(gridlines=True),
+         "legend": legend(False), "labels": labels(True, 8.0), "dataPoint": measure_fill("Growth Colour")},
+        dyn_chrome("Growth in its 8 biggest subcategories", "Subtitle Sub Growth"),
+        sort(F.m("Sales vs PY % Established")), [F.range_filter(f"fTop8{slug}", "Subcategory Rank", 1, 8)]))
+
+    pg = drill_page("pgRegionDetail", "Region detail", [("Territory", "Region", "Southwest")])
+    pg["visualInteractions"] = no_filter(f"vFY{slug}", [f"vMonthly{slug}"])
+    return pg, v
+
+
+def page_tooltip():
+    """A 320x240 report-tooltip page: one SVG card drawn by the 'Tip Card' measure."""
+    pg = mb.page(TIP_PAGE, "Tooltip: 36-month trend")
+    pg.update(width=320, height=240, visibility="HiddenInViewMode", type="Tooltip",
+              displayOption="FitToPage")
+    pg["pageBinding"] = {"name": "PodTipTrend", "type": "Tooltip", "parameters": []}
+    pg["objects"]["background"] = obj(color=colour(CARD), transparency=lit(0.0))
+    return pg, [mb.svg_image("vTipCard", 0, 0, 320, 240, 100, F.expr("Tip Card"))]
 
 
 # --------------------------------------------------------------------------------------------
@@ -452,7 +644,8 @@ def main() -> None:
     rmtree_retry(PAGES)
     order, total = [], 0
     version = {"visual": "2.12.0", "report": "3.4.0", "page": "2.3.1"}
-    for build in (page_summary, page_products, page_customers, page_regions):
+    for build in (page_summary, page_products, page_customers, page_regions, page_product_detail,
+                  page_region_detail, page_tooltip):
         pg, visuals = build()
         names = set()
         for node in visuals:

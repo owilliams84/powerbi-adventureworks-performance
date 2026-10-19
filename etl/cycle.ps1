@@ -20,7 +20,7 @@ python etl\compare.py | Select-Object -Last 1
 if ($NoShots) { return }
 $pkg = (Get-AppxPackage -Name "*PowerBIDesktop*").InstallLocation; $env:PBI_DESKTOP_PATH = "$pkg\bin\PBIDesktop.exe"
 powerbi-desktop screenshot pgSummary --output "$env:TEMP\aw_warm.png" --scale 2 | Out-Null; Start-Sleep 60
-foreach ($p in "pgSummary", "pgProducts", "pgCustomers", "pgRegions") {
+foreach ($p in "pgSummary", "pgProducts", "pgCustomers", "pgRegions", "pgProductDetail", "pgRegionDetail", "pgTipTrend") {
     powerbi-desktop screenshot $p --output "$env:TEMP\aw_raw_$p.png" --scale 2 | Out-Null; Start-Sleep 12
     Copy-Item "$env:TEMP\aw_raw_$p.png" "$root\screenshots\raw_$p.png" -Force
 }

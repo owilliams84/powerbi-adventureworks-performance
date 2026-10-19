@@ -440,7 +440,8 @@ VAR G = DIVIDE(S - P, P)
 VAR Change =
     IF(
         ISBLANK(P),
-        ", the first year in the data",
+        IF(SELECTEDVALUE('Date'[FY Sort]) <= CALCULATE(MIN(Sales[Account First FY]), REMOVEFILTERS()),
+            ", the first year in the data", ", with nothing sold in " & [Comparison Label]),
         ", " & IF(G >= 0, "up ", "down ") & FORMAT(ABS(G), "0.0%") & " on " & [Comparison Label]
     )
 RETURN
@@ -570,7 +571,127 @@ RETURN
           doc="1 for the 7 most and 3 least profitable models: the chart filters on it. The sales test\n"
               "matters: a model with no sales has a blank rank, and BLANK <= 12 is true."),
     ]
-    return out
+    return out + drill_measures()
+
+
+TIP_W, TIP_H = 320, 240
+TIP_X0, TIP_X1, TIP_Y0, TIP_SPARK_H = 16, 304, 214, 56
+
+
+def tip_card() -> str:
+    """The whole 320x240 report tooltip as one SVG: what is hovered, its sales, the change on the
+    prior year, margin and orders, and a 36-month sales line with the year on screen in navy over
+    a paper band. Each month is computed with every Date filter removed, so the line always runs
+    Jul 2017 to Jun 2020 whatever the year slicer says (the tooltip page sees the slicers)."""
+    step = (TIP_X1 - TIP_X0) / 35
+    pt = (f'FORMAT({TIP_X0} + \'Date\'[Month Index] * {step:.4f}, "0.0") & "," & '
+          f'FORMAT({TIP_Y0} - DIVIDE([@v] - Lo, Span) * {TIP_SPARK_H}, "0.0")')
+    return f"""
+VAR FY = SELECTEDVALUE('Date'[FY Sort])
+VAR FirstFY = CALCULATE(MIN(Sales[Account First FY]), REMOVEFILTERS())
+VAR S = [Sales]
+VAR Chg = [Sales vs PY %]
+VAR Col = IF(Chg >= 0, "{mb.GOOD}", "{mb.BAD}")
+VAR ChgTxt = IF(ISBLANK(Chg), "No prior year to compare", {change_text("Chg", "pct")} & " vs " & [Comparison Label])
+VAR HeadTxt = {mb.escape_xml("[Tip Title]")}
+VAR T =
+    ADDCOLUMNS(
+        ALL('Date'[Month Index]),
+        "@v", VAR i = 'Date'[Month Index] RETURN CALCULATE([Sales], REMOVEFILTERS('Date'), 'Date'[Month Index] = i) + 0
+    )
+VAR Lo = 0
+VAR Hi = MAXX(T, [@v])
+VAR Span = IF(Hi = Lo, 1, Hi - Lo)
+VAR SelStart = (FY - FirstFY) * 12
+VAR Pts = CONCATENATEX(T, {pt}, " ", 'Date'[Month Index], ASC)
+VAR PtsSel = CONCATENATEX(FILTER(T, 'Date'[Month Index] >= SelStart && 'Date'[Month Index] < SelStart + 12), {pt}, " ", 'Date'[Month Index], ASC)
+VAR Svg =
+    "<svg xmlns='http://www.w3.org/2000/svg' width='{TIP_W}' height='{TIP_H}' viewBox='0 0 {TIP_W} {TIP_H}' font-family='Segoe UI, sans-serif'>"
+        & "<rect x='0.5' y='0.5' width='{TIP_W - 1}' height='{TIP_H - 1}' rx='4' fill='#FFFFFF' stroke='{mb.RULE}'/><rect width='{TIP_W}' height='4' fill='{mb.GOLD}'/>"
+        & "<text x='16' y='28' font-size='13' font-weight='700' fill='{mb.INK}'>" & HeadTxt & "</text>"
+        & "<text x='16' y='45' font-size='9.5' fill='{mb.MUTED}'>" & IF(ISBLANK(FY), "All three years", "FY" & FY) & ", " & [Scope Label] & "</text>"
+        & "<text x='16' y='78' font-size='24' font-weight='700' fill='{mb.INK}'>" & {short_money("S")} & "</text>"
+        & "<text x='16' y='96' font-size='10'" & IF(ISBLANK(Chg), " fill='{mb.MUTED}'>", " font-weight='700' fill='" & Col & "'>") & ChgTxt & "</text>"
+        & "<text x='180' y='62' font-size='9' font-weight='700' fill='{mb.MUTED}'>MARGIN</text>"
+        & "<text x='180' y='78' font-size='14' font-weight='700' fill='{mb.INK}'>" & FORMAT([Gross Margin %], "0.0%") & "</text>"
+        & "<text x='250' y='62' font-size='9' font-weight='700' fill='{mb.MUTED}'>ORDERS</text>"
+        & "<text x='250' y='78' font-size='14' font-weight='700' fill='{mb.INK}'>" & FORMAT([Orders], "#,0") & "</text>"
+        & "<line x1='16' y1='112' x2='304' y2='112' stroke='{mb.RULE}'/>"
+        & "<text x='16' y='134' font-size='9' font-weight='700' fill='{mb.MUTED}'>MONTHLY SALES, JUL 2017 TO JUN 2020</text>"
+        & IF(NOT ISBLANK(FY), "<rect x='" & FORMAT({TIP_X0} + SelStart * {step:.4f} - 3, "0.0") & "' y='{TIP_Y0 - TIP_SPARK_H - 6}' width='{11 * step + 6:.1f}' height='{TIP_SPARK_H + 12}' fill='{mb.PAPER}'/>")
+        & "<polyline points='" & Pts & "' fill='none' stroke='{mb.LIGHT}' stroke-width='1.4'/>"
+        & "<polyline points='" & PtsSel & "' fill='none' stroke='{mb.NAVY}' stroke-width='2.2'/>"
+        & "<text x='16' y='232' font-size='8.5' fill='{mb.MUTED}'>FY2018</text>"
+        & "<text x='160' y='232' font-size='8.5' text-anchor='middle' fill='{mb.MUTED}'>FY2019</text>"
+        & "<text x='304' y='232' font-size='8.5' text-anchor='end' fill='{mb.MUTED}'>FY2020</text>"
+        & "</svg>"
+RETURN
+    IF(NOT ISBLANK(S), {mb.svg_uri()})"""
+
+
+def drill_measures() -> list[dict]:
+    """Titles and sentences for the two drill-through pages and the report tooltip page."""
+    return [
+        m("Drill Product Title",
+          """VAR P = IF(HASONEVALUE('Product'[Product]), SELECTEDVALUE('Product'[Product]))
+VAR Mo = IF(HASONEVALUE('Product'[Model]), SELECTEDVALUE('Product'[Model]))
+RETURN
+    SWITCH(TRUE(), NOT ISBLANK(P), P, NOT ISBLANK(Mo), Mo & ": every size and colour", "All products")""",
+          doc="The product drilled to, or its model when the drill came from a chart of models.",
+          folder="Drill-through"),
+        m("Drill Product Standfirst",
+          """VAR Sub = IF(HASONEVALUE('Product'[Subcategory]), SELECTEDVALUE('Product'[Subcategory]) & " in " & SELECTEDVALUE('Product'[Category]))
+VAR Price = IF(HASONEVALUE('Product'[Product]), ", list price " & FORMAT(SELECTEDVALUE('Product'[List Price]), "$#,0.00"))
+VAR Intro = IF(ISBLANK(Sub), "", Sub & Price & ". ")
+RETURN
+    Intro & [Title Standfirst]""", folder="Drill-through"),
+        m("Drill Region Title",
+          """VAR R = IF(HASONEVALUE(Territory[Region]), SELECTEDVALUE(Territory[Region]))
+VAR C = SELECTEDVALUE(Territory[Country])
+RETURN
+    IF(ISBLANK(R), "All regions", R & IF(NOT ISBLANK(C) && C <> R, ", " & C))""", folder="Drill-through"),
+        m("Drill Region Standfirst",
+          """VAR G = IF(HASONEVALUE(Territory[Group]), SELECTEDVALUE(Territory[Group]) & " group. ")
+RETURN
+    G & [Title Standfirst]""", folder="Drill-through"),
+        m("Subtitle Margin Month",
+          """VAR L = [Comparison Label]
+RETURN
+    IF(ISBLANK(L), "FY2018 has no prior year; this year's margin only",
+        "Gross margin by month of the fiscal year, in " & L & " and this year")""", folder="Drill-through"),
+        m("Subtitle Category Growth",
+          """VAR L = [Comparison Label]
+RETURN
+    IF(ISBLANK(L), "FY2018 is the first year in the data, so there is nothing to compare",
+        "Sales by category in " & L & " and this year")""", folder="Drill-through"),
+        m("Sales vs PY % Established",
+          """VAR S = [Sales]
+VAR P = [Sales PY]
+RETURN
+    IF(P > 0 && NOT ISBLANK(S) && S / P <= 20, DIVIDE(S - P, P))""", PCT,
+          doc="Growth, blank where the tables say 'new' (last year nil or under a twentieth of this\n"
+              "year): one launch at +15,000% would flatten every other bar.", folder="Drill-through"),
+        m("Subtitle Sub Growth",
+          """VAR L = [Comparison Label]
+RETURN
+    IF(ISBLANK(L), "FY2018 is the first year in the data, so there is nothing to compare",
+        "Growth on " & L & ". Launches with little or no prior year are left out")""", folder="Drill-through"),
+        m("Tip Title",
+          """VAR Sub = IF(HASONEVALUE('Product'[Subcategory]), SELECTEDVALUE('Product'[Subcategory]))
+VAR Cat = IF(HASONEVALUE('Product'[Category]), SELECTEDVALUE('Product'[Category]))
+VAR Reg = IF(HASONEVALUE(Territory[Region]), SELECTEDVALUE(Territory[Region]))
+VAR Hovered = IF(NOT ISBLANK(Sub), Sub, Cat)
+RETURN
+    SWITCH(
+        TRUE(),
+        NOT ISBLANK(Hovered) && NOT ISBLANK(Reg), Hovered & " in " & Reg,
+        NOT ISBLANK(Hovered), Hovered,
+        NOT ISBLANK(Reg), Reg,
+        "All sales"
+    )""", doc="What the report tooltip is about: the hovered subcategory or category, and region.",
+          folder="Drill-through"),
+        m("Tip Card", tip_card(), category="ImageUrl", folder="Cards"),
+    ]
 
 
 # --------------------------------------------------------------------------------------------

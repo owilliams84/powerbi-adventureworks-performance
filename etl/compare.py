@@ -23,7 +23,7 @@ D = ROOT / "data"
 
 s = pd.read_csv(D / "fact_sales.csv", parse_dates=["OrderDate"])
 dates = pd.read_csv(D / "dim_date.csv", parse_dates=["Date"])
-s = s.merge(dates[["Date", "FYSort", "DayOfFY"]], left_on="OrderDate", right_on="Date")
+s = s.merge(dates[["Date", "FYSort", "DayOfFY", "Month"]], left_on="OrderDate", right_on="Date")
 s = s.merge(pd.read_csv(D / "dim_product.csv"), on="ProductKey")
 s = s.merge(pd.read_csv(D / "dim_territory.csv"), on="SalesTerritoryKey")
 s = s.merge(pd.read_csv(D / "dim_reseller.csv")[["ResellerKey", "Reseller", "BuyerType"]], on="ResellerKey")
@@ -94,9 +94,9 @@ FAILS = 0
 def check(label: str, got: pd.DataFrame, want: pd.DataFrame, key: list[str], tol: float = 0.01) -> None:
     global FAILS
     got = got.copy()
-    for c in want.columns:          # executeQueries drops a column that is blank on every row
-        if c not in got.columns:
-            got[c] = None
+    for c in want.columns:          # executeQueries drops a column that is blank on every row,
+        if c not in got.columns:    # and an empty result has no columns at all
+            got[c] = pd.Series(dtype=want[c].dtype) if got.empty else None
     m = want.merge(got, on=key, how="outer", suffixes=("_pd", "_dax"), indicator=True)
     bad = []
     for c in [c for c in want.columns if c not in key]:
@@ -178,8 +178,90 @@ def run(fy: int, channel: str | None) -> None:
     check("models shown and their gross profit", got[["Model", "GP"]], want, ["Model"])
 
 
+def kpis(x: pd.DataFrame, p: pd.DataFrame | None) -> dict:
+    out = {"k": 1, "Sales": x.SalesAmount.sum(), "GP": x.SalesAmount.sum() - x.TotalProductCost.sum(),
+           "Orders": x.OrderID.nunique(), "Customers": x.AccountKey.nunique()}
+    out["GM"] = out["GP"] / out["Sales"]
+    out["AOV"] = out["Sales"] / out["Orders"]
+    if p is not None:
+        out["PY"] = p.SalesAmount.sum()
+    return out
+
+
+KPI_DAX = '"Sales", [Sales], "GP", [Gross Profit], "Orders", [Orders], "Customers", [Customers], ' \
+          '"GM", [Gross Margin %], "AOV", [Average Order Value]'
+
+
+def run_drill(fy: int, channel: str | None, region: str, model: str) -> None:
+    """The drill-through pages: Region detail pinned to `region`, Product detail to `model`."""
+    cy, py = scope(fy, channel), scope(fy, channel, prior=True)
+    has_py = fy > 2018
+    print(f"Drill-through FY{fy}, {channel or 'both channels'}: region {region}, model {model}")
+
+    # Region detail: KPI cards, category last year / this year, top 10 products, top 8 subcategories' growth
+    f = filt(fy, channel) + f', TREATAS({{"{region}"}}, Territory[Region])'
+    rc, rp = cy[cy.Region == region], py[py.Region == region]
+    got = dax(f"""EVALUATE CALCULATETABLE(ROW("k", 1, {KPI_DAX}{', "PY", [Sales PY]' if has_py else ''}), {f})""")
+    check(f"region detail: KPI cards ({region})", got, pd.DataFrame([kpis(rc, rp if has_py else None)]), ["k"])
+
+    g = rc.groupby("Category").SalesAmount.sum().rename("Sales").reset_index()
+    if has_py:
+        g["PY"] = g.Category.map(rp.groupby("Category").SalesAmount.sum())
+    got = dax(f"""EVALUATE SUMMARIZECOLUMNS('Product'[Category], {f}, "Sales", [Sales]{', "PY", [Sales PY]' if has_py else ''})""")
+    check("region detail: category this year and last", got, g, ["Category"])
+
+    t = rc.groupby("Product").SalesAmount.sum().rename("Sales").reset_index()
+    t = t.sort_values(["Sales", "Product"], ascending=[False, True]).head(10)
+    t["Rank"] = range(1, len(t) + 1)
+    got = dax(f"""EVALUATE FILTER(SUMMARIZECOLUMNS('Product'[Product], {f}, "Rank", [Product Rank], "Sales", [Sales]),
+        [Rank] <= 10)""")
+    check("region detail: top 10 products", got, t, ["Product"])
+
+    if has_py:
+        sc = rc.groupby("Subcategory").SalesAmount.sum().rename("Sales")
+        top = sc.reset_index().sort_values(["Sales", "Subcategory"], ascending=[False, True]).head(8)
+        ratio = top.Sales / top.Subcategory.map(rp.groupby("Subcategory").SalesAmount.sum())
+        top["Growth"] = (ratio - 1).where(ratio <= 20)     # 'new' launches are left out of the chart
+        got = dax(f"""EVALUATE FILTER(SUMMARIZECOLUMNS('Product'[Subcategory], {f}, "Sales", [Sales],
+            "Growth", [Sales vs PY % Established], "Rank", [Subcategory Rank]), [Rank] >= 1 && [Rank] <= 8)""")
+        check("region detail: top 8 subcategories' growth", got.drop(columns=["Rank"]),
+              top[["Subcategory", "Sales", "Growth"]], ["Subcategory"])
+
+    # Product detail: KPI cards, regions, buyer types, products in the model, margin by month
+    f = filt(fy, channel) + f', TREATAS({{"{model}"}}, \'Product\'[Model])'
+    mc, mp = cy[cy.Model == model], py[py.Model == model]
+    got = dax(f"""EVALUATE CALCULATETABLE(ROW("k", 1, {KPI_DAX}{', "PY", [Sales PY]' if has_py else ''}), {f})""")
+    check(f"product detail: KPI cards ({model})", got, pd.DataFrame([kpis(mc, mp if has_py else None)]), ["k"])
+
+    r = mc.groupby("Region").SalesAmount.sum().rename("Sales").reset_index()
+    got = dax(f"""EVALUATE SUMMARIZECOLUMNS(Territory[Region], {f}, "Sales", [Sales])""")
+    check("product detail: sales by region", got, r, ["Region"])
+
+    b = mc.groupby("BuyerType").agg(Sales=("SalesAmount", "sum"), Orders=("OrderID", "nunique")).reset_index()
+    got = dax(f"""EVALUATE SUMMARIZECOLUMNS(Reseller[Buyer Type], {f}, "Sales", [Sales], "Orders", [Orders])""")
+    check("product detail: buyer types", got.rename(columns={"Buyer Type": "BuyerType"}), b, ["BuyerType"])
+
+    i = mc.groupby("Product").agg(Sales=("SalesAmount", "sum"), Units=("Quantity", "sum")).reset_index()
+    got = dax(f"""EVALUATE SUMMARIZECOLUMNS('Product'[Product], {f}, "Sales", [Sales], "Units", [Units])""")
+    check("product detail: sizes and colours", got, i, ["Product"])
+
+    # Months with sales in either year: June 2020 can be empty while June 2019 sold.
+    mm = mc.groupby("Month").agg(S=("SalesAmount", "sum"), C=("TotalProductCost", "sum"))
+    if has_py:
+        pm = mp.groupby("Month").agg(S=("SalesAmount", "sum"), C=("TotalProductCost", "sum"))
+        mm = mm.reindex(mm.index.union(pm.index))
+        mm["GMPY"] = 1 - pm.C / pm.S
+    mm["GM"] = 1 - mm.C / mm.S
+    want = mm.drop(columns=["S", "C"]).reset_index()
+    got = dax(f"""EVALUATE SUMMARIZECOLUMNS('Date'[Month], {f}, "GM", [Gross Margin %]{', "GMPY", [Gross Margin % PY]' if has_py else ''})""")
+    check("product detail: margin by month vs prior year", got, want, ["Month"])
+
+
 if __name__ == "__main__":
     for fy, ch in [(2020, None), (2019, "Internet"), (2018, "Reseller")]:
         run(fy, ch)
+    for fy, ch, reg, mod in [(2020, None, "Southwest", "Mountain-200"), (2019, "Reseller", "France", "Road-250"),
+                             (2020, "Internet", "Australia", "Touring-1000")]:
+        run_drill(fy, ch, reg, mod)
     print(f"\n{'ALL MATCH' if FAILS == 0 else f'{FAILS} MISMATCHES'}")
     sys.exit(1 if FAILS else 0)

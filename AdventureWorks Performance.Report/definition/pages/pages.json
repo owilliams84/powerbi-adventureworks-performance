@@ -4,7 +4,10 @@
     "pgSummary",
     "pgProducts",
     "pgCustomers",
-    "pgRegions"
+    "pgRegions",
+    "pgProductDetail",
+    "pgRegionDetail",
+    "pgTipTrend"
   ],
   "activePageName": "pgSummary"
 }
