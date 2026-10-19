@@ -13,7 +13,7 @@ table 'Sales Order'
 	column 'Order Value'
 		dataType: double
 		isHidden
-		formatString: \$#,0
+		formatString: \£#,0
 		lineageTag: 463d4375-2522-57b2-bfdb-72b4d0a50d2b
 		summarizeBy: none
 		sourceColumn: OrderValue

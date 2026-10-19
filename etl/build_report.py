@@ -73,7 +73,7 @@ def legend(show: bool = True) -> list:
 
 
 def labels(show: bool = True, size: float = 8.5, millions: bool = False) -> list:
-    """Data labels in whole units, or in $M to one decimal. Units are written as literals like
+    """Data labels in whole units, or in £M to one decimal. Units are written as literals like
     '1D': lit(1.0) gives '1.0D', which the validator rejects."""
     if not show:
         return obj(show=lit(False))
@@ -202,8 +202,8 @@ def page_summary():
 
     v.append(table(
         "vSeasonSum", 816, 312, 600, 284, 610,
-        [column("Date", "Fiscal Year", "Year")], [F.m("Cell Season", "Sales $M")],
-        chrome("Seasonality: sales by month, $ millions", "Darker cells sold more. The year slicer does not apply"),
+        [column("Date", "Fiscal Year", "Year")], [F.m("Cell Season", "Sales £M")],
+        chrome("Seasonality: sales by month, £ millions", "Darker cells sold more. The year slicer does not apply"),
         image_width=30.0, image_height=22.0, columns=[column("Date", "Month")]))
     v.append(hover_guard("vSeasonGuardSum", 816, 362, 600, 234, 611))
 

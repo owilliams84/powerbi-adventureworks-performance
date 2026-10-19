@@ -75,7 +75,7 @@ ROW(
     "Customers", COUNTROWS(Customer),
     "Products", COUNTROWS('Product'),
     "Days", COUNTROWS('Date'),
-    "Sales", FORMAT([Sales], "$#,0")
+    "Sales", UNICHAR(163) & FORMAT([Sales], "#,0")
 )
 "@
 $r = $check.ExecuteReader()

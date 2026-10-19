@@ -104,7 +104,7 @@ table Sales
 	column 'Unit Price'
 		dataType: double
 		isHidden
-		formatString: \$#,0.00
+		formatString: \£#,0.00
 		lineageTag: da63ef79-d0c7-52d3-85a1-6597a1759b6b
 		summarizeBy: none
 		sourceColumn: UnitPrice
@@ -113,7 +113,7 @@ table Sales
 	column 'Extended Amount'
 		dataType: double
 		isHidden
-		formatString: \$#,0.00
+		formatString: \£#,0.00
 		lineageTag: 4755a478-2606-5d4c-bd98-0d12e6b8f108
 		summarizeBy: none
 		sourceColumn: ExtendedAmount
@@ -121,7 +121,7 @@ table Sales
 	column 'Sales Amount'
 		dataType: double
 		isHidden
-		formatString: \$#,0.00
+		formatString: \£#,0.00
 		lineageTag: cefd9184-88e6-5ca9-905a-796b06fcf667
 		summarizeBy: none
 		sourceColumn: SalesAmount
@@ -129,7 +129,7 @@ table Sales
 	column 'Total Product Cost'
 		dataType: double
 		isHidden
-		formatString: \$#,0.00
+		formatString: \£#,0.00
 		lineageTag: 5c4470ea-d54c-57c0-a47a-dec7a5788b23
 		summarizeBy: none
 		sourceColumn: TotalProductCost

@@ -6,6 +6,7 @@ The workbook is already close to a star schema; this adds what the report needs 
 would otherwise compute on every refresh: a fiscal (July to June) calendar, a channel key on the
 fact, one account key across internet customers and resellers with the fiscal year of each
 account's first order, order-value and line-size bands, and a buyer type for the reseller dimension.
+Money is converted from the workbook's US dollars to pounds at one fixed rate, USD_TO_GBP.
 Writes data/*.csv (UTF-8, LF).
 """
 
@@ -24,8 +25,11 @@ CATEGORY_SORT = {"Bikes": 1, "Components": 2, "Clothing": 3, "Accessories": 4}
 GROUP_SORT = {"North America": 1, "Europe": 2, "Pacific": 3, "Corporate HQ": 4}
 BUYER_SORT = {"Internet": 1, "Bike shops": 2, "Value-add resellers": 3, "Warehouses": 4}
 BUYER_NAME = {"Specialty Bike Shop": "Bike shops", "Value Added Reseller": "Value-add resellers", "Warehouse": "Warehouses"}
-ORDER_BANDS = [(0, 100, "Under $100"), (100, 500, "$100-500"), (500, 2500, "$500-2.5K"),
-               (2500, 10000, "$2.5K-10K"), (10000, 50000, "$10K-50K"), (50000, np.inf, "$50K+")]
+# The workbook is in US dollars; the report is in pounds. One fixed rate for every year, so changes
+# over time are the business, not the exchange rate. Bands below are in pounds, after conversion.
+USD_TO_GBP = 0.79
+ORDER_BANDS = [(0, 100, "Under £100"), (100, 500, "£100-500"), (500, 2500, "£500-2.5K"),
+               (2500, 10000, "£2.5K-10K"), (10000, 50000, "£10K-50K"), (50000, np.inf, "£50K+")]
 # Half-open [lo, hi): AdventureWorks' reseller volume discounts start at 11, 15, 25 and 41 units.
 LINE_BANDS = [(1, 11, "1-10 units"), (11, 15, "11-14 units"), (15, 25, "15-24 units"),
               (25, 41, "25-40 units"), (41, np.inf, "41+ units")]
@@ -60,6 +64,7 @@ def main(xlsx: str) -> None:
     # ---- Dimensions ---------------------------------------------------------------------------
     prod = x["Product_data"].rename(columns={"List Price": "ListPrice", "Standard Cost": "StandardCost"})
     prod["Color"] = prod.Color.fillna("")
+    prod["ListPrice"] = (prod.ListPrice * USD_TO_GBP).round(4)
     prod["CategorySort"] = prod.Category.map(CATEGORY_SORT)
     prod = prod[["ProductKey", "Product", "Model", "Subcategory", "Category", "CategorySort", "Color", "ListPrice"]]
 
@@ -83,6 +88,8 @@ def main(xlsx: str) -> None:
 
     # ---- Fact -----------------------------------------------------------------------------------
     s = x["Sales_data"].merge(x["Sales Order_data"], on="SalesOrderLineKey", validate="one_to_one")
+    for c in ("Unit Price", "Extended Amount", "Sales Amount", "Total Product Cost"):
+        s[c] = (s[c] * USD_TO_GBP).round(4)
     s["OrderDate"] = pd.to_datetime(s.OrderDateKey.astype(str))
     s["ChannelKey"] = np.where(s.Channel == "Internet", 1, 2)
     s["AccountKey"] = np.where(s.ChannelKey == 1, "C" + s.CustomerKey.astype(str), "R" + s.ResellerKey.astype(str))
@@ -110,7 +117,7 @@ def main(xlsx: str) -> None:
                      "fact_sales": fact}.items():
         df.to_csv(OUT / f"{name}.csv", index=False, date_format="%Y-%m-%d", lineterminator="\n")
         print(f"  {name:14s} {len(df):7,d} rows")
-    print(f"sales total {fact.SalesAmount.sum():,.2f}")
+    print(f"sales total £{fact.SalesAmount.sum():,.2f} (at {USD_TO_GBP} GBP per USD)")
 
 
 if __name__ == "__main__":

@@ -48,7 +48,7 @@
               },
               "queryRef": "Metrics.Cell Season",
               "nativeQueryRef": "Cell Season",
-              "displayName": "Sales $M"
+              "displayName": "Sales \u00a3M"
             }
           ]
         },
@@ -400,7 +400,7 @@
             "text": {
               "expr": {
                 "Literal": {
-                  "Value": "'Seasonality: sales by month, $ millions'"
+                  "Value": "'Seasonality: sales by month, \u00a3 millions'"
                 }
               }
             },

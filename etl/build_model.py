@@ -29,7 +29,7 @@ DATA = ROOT / "data"
 tag = mb.tagger("8d2f4a61-3c7e-4b9a-a1d5-6e0f2b7c9d14", "aw")
 q = mb.q
 
-USD = "\\$#,0"
+GBP = "\\£#,0"
 INT = "#,0"
 PCT = "0.0%"
 
@@ -74,7 +74,7 @@ TABLES = {
             col("Category", "Category", "string", sortBy="Category Sort"),
             col("Category Sort", "CategorySort", "int64", hidden=True, format="0"),
             col("Color", "Color", "string"),
-            col("List Price", "ListPrice", "double", format="\\$#,0.00"),
+            col("List Price", "ListPrice", "double", format="\\£#,0.00"),
         ],
     ),
     "Territory": dict(
@@ -137,7 +137,7 @@ TABLES = {
             "an order keeps its band whatever product filter is on the page.",
         columns=[
             col("Order ID", "OrderID", "string", key=True),
-            col("Order Value", "OrderValue", "double", hidden=True, format=USD),
+            col("Order Value", "OrderValue", "double", hidden=True, format=GBP),
             col("Order Size", "OrderSize", "string", sortBy="Order Size Sort"),
             col("Order Size Sort", "OrderSizeSort", "int64", hidden=True, format="0"),
         ],
@@ -163,11 +163,11 @@ TABLES = {
                 doc="Fiscal year of the account's first order in the data. New customers are the\n"
                     "accounts whose first fiscal year is the one on screen."),
             col("Quantity", "Quantity", "int64", hidden=True, format="0"),
-            col("Unit Price", "UnitPrice", "double", hidden=True, format="\\$#,0.00"),
-            col("Extended Amount", "ExtendedAmount", "double", hidden=True, format="\\$#,0.00",
+            col("Unit Price", "UnitPrice", "double", hidden=True, format="\\£#,0.00"),
+            col("Extended Amount", "ExtendedAmount", "double", hidden=True, format="\\£#,0.00",
                 doc="Quantity at list price, before any discount."),
-            col("Sales Amount", "SalesAmount", "double", hidden=True, format="\\$#,0.00"),
-            col("Total Product Cost", "TotalProductCost", "double", hidden=True, format="\\$#,0.00"),
+            col("Sales Amount", "SalesAmount", "double", hidden=True, format="\\£#,0.00"),
+            col("Total Product Cost", "TotalProductCost", "double", hidden=True, format="\\£#,0.00"),
         ],
     ),
 }
@@ -216,9 +216,9 @@ RETURN
 
 
 def short_money(e: str) -> str:
-    """'$51.9M', '$315.8K', '$5,904' as DAX text."""
-    return (f'IF(ABS({e}) >= 1000000, FORMAT({e} / 1000000, "$#,0.0") & "M", '
-            f'IF(ABS({e}) >= 1000, FORMAT({e} / 1000, "$#,0.0") & "K", FORMAT({e}, "$#,0")))')
+    """'£51.9M', '£315.8K', '£5,904' as DAX text."""
+    return (f'IF(ABS({e}) >= 1000000, FORMAT({e} / 1000000, "£#,0.0") & "M", '
+            f'IF(ABS({e}) >= 1000, FORMAT({e} / 1000, "£#,0.0") & "K", FORMAT({e}, "£#,0")))')
 
 
 def change_text(chg: str, kind: str) -> str:
@@ -340,26 +340,26 @@ def m(name, dax, fmt=None, doc=None, category=None, folder=None, hidden=False):
 def measures() -> list[dict]:
     out = [
         # ---- base ----
-        m("Sales", "SUM(Sales[Sales Amount])", USD, "Sales Amount: after discount.", folder="Base"),
-        m("Cost", "SUM(Sales[Total Product Cost])", USD, folder="Base"),
-        m("Gross Profit", "[Sales] - [Cost]", USD, folder="Base"),
+        m("Sales", "SUM(Sales[Sales Amount])", GBP, "Sales Amount: after discount, in pounds at a fixed $1 = £0.79.", folder="Base"),
+        m("Cost", "SUM(Sales[Total Product Cost])", GBP, folder="Base"),
+        m("Gross Profit", "[Sales] - [Cost]", GBP, folder="Base"),
         m("Gross Margin %", "DIVIDE([Gross Profit], [Sales])", PCT, folder="Base"),
         m("Orders", "DISTINCTCOUNT(Sales[Order ID])", INT, "Distinct orders, not lines.", folder="Base"),
         m("Units", "SUM(Sales[Quantity])", INT, folder="Base"),
         m("Customers", "DISTINCTCOUNT(Sales[Account Key])", INT,
           "Distinct buying accounts: internet customers plus resellers.", folder="Base"),
-        m("Average Order Value", "DIVIDE([Sales], [Orders])", USD, folder="Base"),
+        m("Average Order Value", "DIVIDE([Sales], [Orders])", GBP, folder="Base"),
         m("Units per Order", "DIVIDE([Units], [Orders])", "0.0", folder="Base"),
-        m("Sales per Customer", "DIVIDE([Sales], [Customers])", USD, folder="Base"),
-        m("List Value", "SUM(Sales[Extended Amount])", USD, "Quantity at list price.", folder="Base"),
-        m("Discount", "[List Value] - [Sales]", USD, "List value less sales amount.", folder="Base"),
+        m("Sales per Customer", "DIVIDE([Sales], [Customers])", GBP, folder="Base"),
+        m("List Value", "SUM(Sales[Extended Amount])", GBP, "Quantity at list price.", folder="Base"),
+        m("Discount", "[List Value] - [Sales]", GBP, "List value less sales amount.", folder="Base"),
         m("Discount Rate", "DIVIDE([Discount], [List Value])", PCT, folder="Base"),
         m("Discounted Sales",
           "CALCULATE([Sales], KEEPFILTERS(FILTER(Sales, Sales[Extended Amount] - Sales[Sales Amount] > 0.005)))",
-          USD, "Sales on lines that carried any discount.", folder="Base"),
+          GBP, "Sales on lines that carried any discount.", folder="Base"),
         m("Discounted Sales Share", "DIVIDE([Discounted Sales], [Sales])", PCT, folder="Base"),
-        m("Sales $M", "DIVIDE([Sales], 1000000)", "0.0", "Sales in millions, for dense matrices.", folder="Base"),
-        m("Sales Line", "[Sales] + 0", USD,
+        m("Sales £M", "DIVIDE([Sales], 1000000)", "0.0", "Sales in millions, for dense matrices.", folder="Base"),
+        m("Sales Line", "[Sales] + 0", GBP,
           "Sales with empty months as zero, so a month without reseller orders draws as a dip\n"
           "rather than a gap in the line.", folder="Base"),
         m("Sales Share of Channels", "DIVIDE([Sales], CALCULATE([Sales], REMOVEFILTERS(Channel)))", PCT,
@@ -368,16 +368,16 @@ def measures() -> list[dict]:
           folder="Base"),
 
         # ---- prior year, like for like ----
-        m("Sales PY", py("[Sales]"), USD,
+        m("Sales PY", py("[Sales]"), GBP,
           "Prior fiscal year. When the year on screen is the one the data ends in (FY2020, to 15 Jun),\n"
           "the prior year is cut at the same day of its fiscal year. Blank in the first year.",
           folder="Prior year"),
-        m("Gross Profit PY", py("[Gross Profit]"), USD, folder="Prior year"),
+        m("Gross Profit PY", py("[Gross Profit]"), GBP, folder="Prior year"),
         m("Gross Margin % PY", "DIVIDE([Gross Profit PY], [Sales PY])", PCT, folder="Prior year"),
         m("Orders PY", py("[Orders]"), INT, folder="Prior year"),
         m("Customers PY", py("[Customers]"), INT, folder="Prior year"),
-        m("Average Order Value PY", "DIVIDE([Sales PY], [Orders PY])", USD, folder="Prior year"),
-        m("Sales vs PY", "VAR P = [Sales PY] RETURN IF(NOT ISBLANK(P), [Sales] - P)", USD, folder="Prior year"),
+        m("Average Order Value PY", "DIVIDE([Sales PY], [Orders PY])", GBP, folder="Prior year"),
+        m("Sales vs PY", "VAR P = [Sales PY] RETURN IF(NOT ISBLANK(P), [Sales] - P)", GBP, folder="Prior year"),
         m("Sales vs PY %", "VAR P = [Sales PY] RETURN IF(NOT ISBLANK(P), DIVIDE([Sales] - P, P))", PCT,
           folder="Prior year"),
         m("Gross Margin Change",
@@ -412,7 +412,7 @@ RETURN
           "VAR FY = SELECTEDVALUE('Date'[FY Sort])\n"
           "RETURN\n"
           "    IF(NOT ISBLANK(FY), CALCULATE([Sales], KEEPFILTERS(Sales[Account First FY] < FY)) + 0)",
-          USD, folder="Customers"),
+          GBP, folder="Customers"),
         m("Returning Sales Share", "DIVIDE([Sales from Returning Customers], [Sales])", PCT, folder="Customers"),
 
         # ---- labels ----
@@ -487,7 +487,7 @@ RETURN
          "[Gross Margin %]", False),
         ("Card Orders", "ORDERS", 'FORMAT([Orders], "#,0")',
          "VAR P = [Orders PY] RETURN IF(NOT ISBLANK(P), DIVIDE([Orders] - P, P))", "pct", "[Orders]", True),
-        ("Card Average Order", "AVERAGE ORDER VALUE", 'FORMAT([Average Order Value], "$#,0")',
+        ("Card Average Order", "AVERAGE ORDER VALUE", 'FORMAT([Average Order Value], "£#,0")',
          "VAR P = [Average Order Value PY] RETURN IF(NOT ISBLANK(P), DIVIDE([Average Order Value] - P, P))", "pct",
          "[Average Order Value]", True),
         ("Card Customers", "CUSTOMERS", 'FORMAT([Customers], "#,0")',
@@ -641,7 +641,7 @@ RETURN
           folder="Drill-through"),
         m("Drill Product Standfirst",
           """VAR Sub = IF(HASONEVALUE('Product'[Subcategory]), SELECTEDVALUE('Product'[Subcategory]) & " in " & SELECTEDVALUE('Product'[Category]))
-VAR Price = IF(HASONEVALUE('Product'[Product]), ", list price " & FORMAT(SELECTEDVALUE('Product'[List Price]), "$#,0.00"))
+VAR Price = IF(HASONEVALUE('Product'[Product]), ", list price " & FORMAT(SELECTEDVALUE('Product'[List Price]), "£#,0.00"))
 VAR Intro = IF(ISBLANK(Sub), "", Sub & Price & ". ")
 RETURN
     Intro & [Title Standfirst]""", folder="Drill-through"),

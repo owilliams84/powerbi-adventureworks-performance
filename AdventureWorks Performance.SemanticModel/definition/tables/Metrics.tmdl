@@ -3,19 +3,19 @@
 table Metrics
 	lineageTag: 229bc061-44ba-547a-ac2f-5a52ce9ce6cf
 
-	/// Sales Amount: after discount.
+	/// Sales Amount: after discount, in pounds at a fixed $1 = £0.79.
 	measure Sales = SUM(Sales[Sales Amount])
-		formatString: \$#,0
+		formatString: \£#,0
 		displayFolder: Base
 		lineageTag: 227cde79-3b43-5a4d-a600-c9ade6c637f8
 
 	measure Cost = SUM(Sales[Total Product Cost])
-		formatString: \$#,0
+		formatString: \£#,0
 		displayFolder: Base
 		lineageTag: 57a24b83-ba1e-5295-ba19-2af961b8bf3f
 
 	measure 'Gross Profit' = [Sales] - [Cost]
-		formatString: \$#,0
+		formatString: \£#,0
 		displayFolder: Base
 		lineageTag: fd07362c-2b99-585a-b7e6-3097197cf073
 
@@ -42,7 +42,7 @@ table Metrics
 		lineageTag: d37b7801-f9e2-53c7-9ee1-d9b92738346e
 
 	measure 'Average Order Value' = DIVIDE([Sales], [Orders])
-		formatString: \$#,0
+		formatString: \£#,0
 		displayFolder: Base
 		lineageTag: 195ec4ee-0af5-5ac5-9437-586af5037954
 
@@ -52,19 +52,19 @@ table Metrics
 		lineageTag: 09a81145-9817-5cde-bd1c-b7b632a15015
 
 	measure 'Sales per Customer' = DIVIDE([Sales], [Customers])
-		formatString: \$#,0
+		formatString: \£#,0
 		displayFolder: Base
 		lineageTag: 71353fb3-4b7f-5da3-bea0-2f1f41031646
 
 	/// Quantity at list price.
 	measure 'List Value' = SUM(Sales[Extended Amount])
-		formatString: \$#,0
+		formatString: \£#,0
 		displayFolder: Base
 		lineageTag: 5d865392-afc3-5369-a0cd-a20d541d1175
 
 	/// List value less sales amount.
 	measure Discount = [List Value] - [Sales]
-		formatString: \$#,0
+		formatString: \£#,0
 		displayFolder: Base
 		lineageTag: 5510c151-fbcf-532a-a390-89e41890bff3
 
@@ -75,7 +75,7 @@ table Metrics
 
 	/// Sales on lines that carried any discount.
 	measure 'Discounted Sales' = CALCULATE([Sales], KEEPFILTERS(FILTER(Sales, Sales[Extended Amount] - Sales[Sales Amount] > 0.005)))
-		formatString: \$#,0
+		formatString: \£#,0
 		displayFolder: Base
 		lineageTag: 7486de99-52f4-58e4-acfe-33f3d54da17d
 
@@ -85,15 +85,15 @@ table Metrics
 		lineageTag: b5d716e4-f583-5d61-b0fc-7e8097902ec3
 
 	/// Sales in millions, for dense matrices.
-	measure 'Sales $M' = DIVIDE([Sales], 1000000)
+	measure 'Sales £M' = DIVIDE([Sales], 1000000)
 		formatString: 0.0
 		displayFolder: Base
-		lineageTag: a23fc438-e9fd-5a8b-86a5-a3b1983ebffc
+		lineageTag: 6e88d8ad-19ee-5d53-a357-582ecb5fe8be
 
 	/// Sales with empty months as zero, so a month without reseller orders draws as a dip
 	/// rather than a gap in the line.
 	measure 'Sales Line' = [Sales] + 0
-		formatString: \$#,0
+		formatString: \£#,0
 		displayFolder: Base
 		lineageTag: b919b566-6c8b-5362-8c51-a58ca6c76f70
 
@@ -125,7 +125,7 @@ table Metrics
 			            'Date'[Day of FY] <= CutDay
 			        )
 			    )
-		formatString: \$#,0
+		formatString: \£#,0
 		displayFolder: Prior year
 		lineageTag: bd90b26e-2b38-5df4-9204-6361bef5fc81
 
@@ -145,7 +145,7 @@ table Metrics
 			            'Date'[Day of FY] <= CutDay
 			        )
 			    )
-		formatString: \$#,0
+		formatString: \£#,0
 		displayFolder: Prior year
 		lineageTag: bcc3f09a-3dd6-5ec4-ac41-4bc992047734
 
@@ -195,12 +195,12 @@ table Metrics
 		lineageTag: 3166997e-34e0-5f0c-97b7-9a23c950959b
 
 	measure 'Average Order Value PY' = DIVIDE([Sales PY], [Orders PY])
-		formatString: \$#,0
+		formatString: \£#,0
 		displayFolder: Prior year
 		lineageTag: 0e16c791-115a-5c36-abee-be9cdfc758d7
 
 	measure 'Sales vs PY' = VAR P = [Sales PY] RETURN IF(NOT ISBLANK(P), [Sales] - P)
-		formatString: \$#,0
+		formatString: \£#,0
 		displayFolder: Prior year
 		lineageTag: 50162bc0-0b67-5cd9-bb4e-ddb1f86750b2
 
@@ -264,7 +264,7 @@ table Metrics
 			VAR FY = SELECTEDVALUE('Date'[FY Sort])
 			RETURN
 			    IF(NOT ISBLANK(FY), CALCULATE([Sales], KEEPFILTERS(Sales[Account First FY] < FY)) + 0)
-		formatString: \$#,0
+		formatString: \£#,0
 		displayFolder: Customers
 		lineageTag: 6e32fbb0-7072-599e-b1a7-7c9f7ff7c4e7
 
@@ -320,7 +320,7 @@ table Metrics
 			        ", " & IF(G >= 0, "up ", "down ") & FORMAT(ABS(G), "0.0%") & " on " & [Comparison Label]
 			    )
 			RETURN
-			    [Period Label] & ", " & [Scope Label] & ": sales of " & IF(ABS(S) >= 1000000, FORMAT(S / 1000000, "$#,0.0") & "M", IF(ABS(S) >= 1000, FORMAT(S / 1000, "$#,0.0") & "K", FORMAT(S, "$#,0"))) & Change
+			    [Period Label] & ", " & [Scope Label] & ": sales of " & IF(ABS(S) >= 1000000, FORMAT(S / 1000000, "£#,0.0") & "M", IF(ABS(S) >= 1000, FORMAT(S / 1000, "£#,0.0") & "K", FORMAT(S, "£#,0"))) & Change
 			        & ", from " & FORMAT([Orders], "#,0") & " orders at a gross margin of " & FORMAT([Gross Margin %], "0.0%") & "."
 		displayFolder: Labels
 		lineageTag: c4ffad15-6472-5076-b112-d75b6ed11821
@@ -357,7 +357,7 @@ table Metrics
 			RETURN
 			    IF(
 			        D > 1,
-			        FORMAT([Discounted Sales Share], "0.0%") & " of sales carried a discount, worth " & IF(ABS(D) >= 1000000, FORMAT(D / 1000000, "$#,0.0") & "M", IF(ABS(D) >= 1000, FORMAT(D / 1000, "$#,0.0") & "K", FORMAT(D, "$#,0")))
+			        FORMAT([Discounted Sales Share], "0.0%") & " of sales carried a discount, worth " & IF(ABS(D) >= 1000000, FORMAT(D / 1000000, "£#,0.0") & "M", IF(ABS(D) >= 1000, FORMAT(D / 1000, "£#,0.0") & "K", FORMAT(D, "£#,0")))
 			            & ". Bubble size is the discount",
 			        "No discounts here: internet sales are always at list price"
 			    )
@@ -388,14 +388,14 @@ table Metrics
 			    "<svg xmlns='http://www.w3.org/2000/svg' width='220' height='120' viewBox='0 0 220 120' font-family='Segoe UI, sans-serif'>"
 			        & "<rect x='0.5' y='0.5' width='219' height='119' rx='4' fill='#FFFFFF' stroke='#E3E7EF'/><rect width='3' height='120' fill='#C9A227'/>"
 			        & "<text x='14' y='22' font-size='11' font-weight='700' fill='#667284'>TOTAL SALES</text>"
-			        & "<text x='14' y='52' font-size='26' font-weight='700' fill='#0A0917'>" & IF(ABS([Sales]) >= 1000000, FORMAT([Sales] / 1000000, "$#,0.0") & "M", IF(ABS([Sales]) >= 1000, FORMAT([Sales] / 1000, "$#,0.0") & "K", FORMAT([Sales], "$#,0"))) & "</text>"
+			        & "<text x='14' y='52' font-size='26' font-weight='700' fill='#0A0917'>" & IF(ABS([Sales]) >= 1000000, FORMAT([Sales] / 1000000, "£#,0.0") & "M", IF(ABS([Sales]) >= 1000, FORMAT([Sales] / 1000, "£#,0.0") & "K", FORMAT([Sales], "£#,0"))) & "</text>"
 			        & "<text x='14' y='71' font-size='10.5'><tspan font-weight='700' fill='" & Col & "'>" & ChgTxt & "</tspan><tspan fill='#667284'>" & Tail & "</tspan></text>"
 			        & IF(NOT ISBLANK(FY), "<rect x='" & FORMAT(14 + SelStart * 5.6 - 2.8, "0.0") & "' y='84' width='67.2' height='30' fill='#F4F6FA'/>")
 			        & "<polyline points='" & Pts & "' fill='none' stroke='#BCC1D2' stroke-width='1.3'/>"
 			        & "<polyline points='" & PtsSel & "' fill='none' stroke='#111F38' stroke-width='2'/>"
 			        & "</svg>"
 			RETURN
-			    IF(NOT ISBLANK(IF(ABS([Sales]) >= 1000000, FORMAT([Sales] / 1000000, "$#,0.0") & "M", IF(ABS([Sales]) >= 1000, FORMAT([Sales] / 1000, "$#,0.0") & "K", FORMAT([Sales], "$#,0")))), "data:image/svg+xml;utf8," & SUBSTITUTE(SUBSTITUTE(Svg, "%", "%25"), "#", "%23"))
+			    IF(NOT ISBLANK(IF(ABS([Sales]) >= 1000000, FORMAT([Sales] / 1000000, "£#,0.0") & "M", IF(ABS([Sales]) >= 1000, FORMAT([Sales] / 1000, "£#,0.0") & "K", FORMAT([Sales], "£#,0")))), "data:image/svg+xml;utf8," & SUBSTITUTE(SUBSTITUTE(Svg, "%", "%25"), "#", "%23"))
 		dataCategory: ImageUrl
 		displayFolder: Cards
 		lineageTag: f13f669a-9c52-5a19-b30d-3de6d7ac05db
@@ -424,14 +424,14 @@ table Metrics
 			    "<svg xmlns='http://www.w3.org/2000/svg' width='220' height='120' viewBox='0 0 220 120' font-family='Segoe UI, sans-serif'>"
 			        & "<rect x='0.5' y='0.5' width='219' height='119' rx='4' fill='#FFFFFF' stroke='#E3E7EF'/><rect width='3' height='120' fill='#C9A227'/>"
 			        & "<text x='14' y='22' font-size='11' font-weight='700' fill='#667284'>GROSS PROFIT</text>"
-			        & "<text x='14' y='52' font-size='26' font-weight='700' fill='#0A0917'>" & IF(ABS([Gross Profit]) >= 1000000, FORMAT([Gross Profit] / 1000000, "$#,0.0") & "M", IF(ABS([Gross Profit]) >= 1000, FORMAT([Gross Profit] / 1000, "$#,0.0") & "K", FORMAT([Gross Profit], "$#,0"))) & "</text>"
+			        & "<text x='14' y='52' font-size='26' font-weight='700' fill='#0A0917'>" & IF(ABS([Gross Profit]) >= 1000000, FORMAT([Gross Profit] / 1000000, "£#,0.0") & "M", IF(ABS([Gross Profit]) >= 1000, FORMAT([Gross Profit] / 1000, "£#,0.0") & "K", FORMAT([Gross Profit], "£#,0"))) & "</text>"
 			        & "<text x='14' y='71' font-size='10.5'><tspan font-weight='700' fill='" & Col & "'>" & ChgTxt & "</tspan><tspan fill='#667284'>" & Tail & "</tspan></text>"
 			        & IF(NOT ISBLANK(FY), "<rect x='" & FORMAT(14 + SelStart * 5.6 - 2.8, "0.0") & "' y='84' width='67.2' height='30' fill='#F4F6FA'/>")
 			        & "<polyline points='" & Pts & "' fill='none' stroke='#BCC1D2' stroke-width='1.3'/>"
 			        & "<polyline points='" & PtsSel & "' fill='none' stroke='#111F38' stroke-width='2'/>"
 			        & "</svg>"
 			RETURN
-			    IF(NOT ISBLANK(IF(ABS([Gross Profit]) >= 1000000, FORMAT([Gross Profit] / 1000000, "$#,0.0") & "M", IF(ABS([Gross Profit]) >= 1000, FORMAT([Gross Profit] / 1000, "$#,0.0") & "K", FORMAT([Gross Profit], "$#,0")))), "data:image/svg+xml;utf8," & SUBSTITUTE(SUBSTITUTE(Svg, "%", "%25"), "#", "%23"))
+			    IF(NOT ISBLANK(IF(ABS([Gross Profit]) >= 1000000, FORMAT([Gross Profit] / 1000000, "£#,0.0") & "M", IF(ABS([Gross Profit]) >= 1000, FORMAT([Gross Profit] / 1000, "£#,0.0") & "K", FORMAT([Gross Profit], "£#,0")))), "data:image/svg+xml;utf8," & SUBSTITUTE(SUBSTITUTE(Svg, "%", "%25"), "#", "%23"))
 		dataCategory: ImageUrl
 		displayFolder: Cards
 		lineageTag: 5ee98686-6559-55fb-af8f-3ea62c17f1c8
@@ -532,14 +532,14 @@ table Metrics
 			    "<svg xmlns='http://www.w3.org/2000/svg' width='220' height='120' viewBox='0 0 220 120' font-family='Segoe UI, sans-serif'>"
 			        & "<rect x='0.5' y='0.5' width='219' height='119' rx='4' fill='#FFFFFF' stroke='#E3E7EF'/><rect width='3' height='120' fill='#C9A227'/>"
 			        & "<text x='14' y='22' font-size='11' font-weight='700' fill='#667284'>AVERAGE ORDER VALUE</text>"
-			        & "<text x='14' y='52' font-size='26' font-weight='700' fill='#0A0917'>" & FORMAT([Average Order Value], "$#,0") & "</text>"
+			        & "<text x='14' y='52' font-size='26' font-weight='700' fill='#0A0917'>" & FORMAT([Average Order Value], "£#,0") & "</text>"
 			        & "<text x='14' y='71' font-size='10.5'><tspan font-weight='700' fill='" & Col & "'>" & ChgTxt & "</tspan><tspan fill='#667284'>" & Tail & "</tspan></text>"
 			        & IF(NOT ISBLANK(FY), "<rect x='" & FORMAT(14 + SelStart * 5.6 - 2.8, "0.0") & "' y='84' width='67.2' height='30' fill='#F4F6FA'/>")
 			        & "<polyline points='" & Pts & "' fill='none' stroke='#BCC1D2' stroke-width='1.3'/>"
 			        & "<polyline points='" & PtsSel & "' fill='none' stroke='#111F38' stroke-width='2'/>"
 			        & "</svg>"
 			RETURN
-			    IF(NOT ISBLANK(FORMAT([Average Order Value], "$#,0")), "data:image/svg+xml;utf8," & SUBSTITUTE(SUBSTITUTE(Svg, "%", "%25"), "#", "%23"))
+			    IF(NOT ISBLANK(FORMAT([Average Order Value], "£#,0")), "data:image/svg+xml;utf8," & SUBSTITUTE(SUBSTITUTE(Svg, "%", "%25"), "#", "%23"))
 		dataCategory: ImageUrl
 		displayFolder: Cards
 		lineageTag: 1ce4f223-8f91-5d2d-9c6a-0c2fccba9416
@@ -635,7 +635,7 @@ table Metrics
 			    "<svg xmlns='http://www.w3.org/2000/svg' width='336' height='96' viewBox='0 0 336 96' font-family='Segoe UI, sans-serif'>"
 			        & "<rect x='0.5' y='0.5' width='335' height='95' rx='4' fill='#FFFFFF' stroke='#E3E7EF'/><rect width='3' height='96' fill='#C9A227'/>"
 			        & "<text x='16' y='22' font-size='11' font-weight='700' fill='#667284'>SALES FROM RETURNING CUSTOMERS</text>"
-			        & "<text x='16' y='56' font-size='28' font-weight='700' fill='#0A0917'>" & IF(ABS([Sales from Returning Customers]) >= 1000000, FORMAT([Sales from Returning Customers] / 1000000, "$#,0.0") & "M", IF(ABS([Sales from Returning Customers]) >= 1000, FORMAT([Sales from Returning Customers] / 1000, "$#,0.0") & "K", FORMAT([Sales from Returning Customers], "$#,0"))) & "</text>"
+			        & "<text x='16' y='56' font-size='28' font-weight='700' fill='#0A0917'>" & IF(ABS([Sales from Returning Customers]) >= 1000000, FORMAT([Sales from Returning Customers] / 1000000, "£#,0.0") & "M", IF(ABS([Sales from Returning Customers]) >= 1000, FORMAT([Sales from Returning Customers] / 1000, "£#,0.0") & "K", FORMAT([Sales from Returning Customers], "£#,0"))) & "</text>"
 			        & "<text x='16' y='81' font-size='11.5' fill='" & NoteCol & "'>" & Note & "</text>"
 			        & "</svg>"
 			RETURN
@@ -670,7 +670,7 @@ table Metrics
 			VAR Svg =
 			    "<svg xmlns='http://www.w3.org/2000/svg' width='66' height='22' viewBox='0 0 66 22' font-family='Segoe UI, sans-serif'>"
 			        & "<rect x='1' y='1' width='64' height='20' rx='2' fill='" & Bg & "'/>"
-			        & "<text x='33' y='15' font-size='11' text-anchor='middle' fill='" & Fg & "'>" & IF(ABS(Me) >= 1000000, FORMAT(Me / 1000000, "$#,0.0") & "M", IF(ABS(Me) >= 1000, FORMAT(Me / 1000, "$#,0.0") & "K", FORMAT(Me, "$#,0"))) & "</text>"
+			        & "<text x='33' y='15' font-size='11' text-anchor='middle' fill='" & Fg & "'>" & IF(ABS(Me) >= 1000000, FORMAT(Me / 1000000, "£#,0.0") & "M", IF(ABS(Me) >= 1000, FORMAT(Me / 1000, "£#,0.0") & "K", FORMAT(Me, "£#,0"))) & "</text>"
 			        & "</svg>"
 			RETURN
 			    IF(NOT ISBLANK(Me), "data:image/svg+xml;utf8," & SUBSTITUTE(SUBSTITUTE(Svg, "%", "%25"), "#", "%23"))
@@ -687,7 +687,7 @@ table Metrics
 			VAR Svg =
 			    "<svg xmlns='http://www.w3.org/2000/svg' width='110' height='18' viewBox='0 0 110 18' font-family='Segoe UI, sans-serif'>"
 			        & "<rect x='1' y='1' width='108' height='16' rx='2' fill='" & Bg & "'/>"
-			        & "<text x='55' y='13' font-size='11' text-anchor='middle' fill='" & Fg & "'>" & IF(ABS(Me) >= 1000000, FORMAT(Me / 1000000, "$#,0.0") & "M", IF(ABS(Me) >= 1000, FORMAT(Me / 1000, "$#,0.0") & "K", FORMAT(Me, "$#,0"))) & "</text>"
+			        & "<text x='55' y='13' font-size='11' text-anchor='middle' fill='" & Fg & "'>" & IF(ABS(Me) >= 1000000, FORMAT(Me / 1000000, "£#,0.0") & "M", IF(ABS(Me) >= 1000, FORMAT(Me / 1000, "£#,0.0") & "K", FORMAT(Me, "£#,0"))) & "</text>"
 			        & "</svg>"
 			RETURN
 			    IF(NOT ISBLANK(Me), "data:image/svg+xml;utf8," & SUBSTITUTE(SUBSTITUTE(Svg, "%", "%25"), "#", "%23"))
@@ -840,7 +840,7 @@ table Metrics
 
 	measure 'Drill Product Standfirst' =
 			VAR Sub = IF(HASONEVALUE('Product'[Subcategory]), SELECTEDVALUE('Product'[Subcategory]) & " in " & SELECTEDVALUE('Product'[Category]))
-			VAR Price = IF(HASONEVALUE('Product'[Product]), ", list price " & FORMAT(SELECTEDVALUE('Product'[List Price]), "$#,0.00"))
+			VAR Price = IF(HASONEVALUE('Product'[Product]), ", list price " & FORMAT(SELECTEDVALUE('Product'[List Price]), "£#,0.00"))
 			VAR Intro = IF(ISBLANK(Sub), "", Sub & Price & ". ")
 			RETURN
 			    Intro & [Title Standfirst]
@@ -938,7 +938,7 @@ table Metrics
 			        & "<rect x='0.5' y='0.5' width='319' height='239' rx='4' fill='#FFFFFF' stroke='#E3E7EF'/><rect width='320' height='4' fill='#C9A227'/>"
 			        & "<text x='16' y='28' font-size='13' font-weight='700' fill='#0A0917'>" & HeadTxt & "</text>"
 			        & "<text x='16' y='45' font-size='9.5' fill='#667284'>" & IF(ISBLANK(FY), "All three years", "FY" & FY) & ", " & [Scope Label] & "</text>"
-			        & "<text x='16' y='78' font-size='24' font-weight='700' fill='#0A0917'>" & IF(ABS(S) >= 1000000, FORMAT(S / 1000000, "$#,0.0") & "M", IF(ABS(S) >= 1000, FORMAT(S / 1000, "$#,0.0") & "K", FORMAT(S, "$#,0"))) & "</text>"
+			        & "<text x='16' y='78' font-size='24' font-weight='700' fill='#0A0917'>" & IF(ABS(S) >= 1000000, FORMAT(S / 1000000, "£#,0.0") & "M", IF(ABS(S) >= 1000, FORMAT(S / 1000, "£#,0.0") & "K", FORMAT(S, "£#,0"))) & "</text>"
 			        & "<text x='16' y='96' font-size='10'" & IF(ISBLANK(Chg), " fill='#667284'>", " font-weight='700' fill='" & Col & "'>") & ChgTxt & "</text>"
 			        & "<text x='180' y='62' font-size='9' font-weight='700' fill='#667284'>MARGIN</text>"
 			        & "<text x='180' y='78' font-size='14' font-weight='700' fill='#0A0917'>" & FORMAT([Gross Margin %], "0.0%") & "</text>"

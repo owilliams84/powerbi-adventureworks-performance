@@ -52,7 +52,7 @@ table Product
 
 	column 'List Price'
 		dataType: double
-		formatString: \$#,0.00
+		formatString: \£#,0.00
 		lineageTag: caaecf63-864c-5aa1-88d5-0a45d71fe0bd
 		summarizeBy: none
 		sourceColumn: ListPrice
