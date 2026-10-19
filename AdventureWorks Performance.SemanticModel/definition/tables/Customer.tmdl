@@ -1,0 +1,48 @@
+/// 18,484 internet customers, plus key -1 for reseller sales.
+table Customer
+	lineageTag: de252549-8177-54e2-979f-a4fcf61f35e2
+
+	column 'Customer Key'
+		dataType: int64
+		isHidden
+		isKey
+		formatString: 0
+		lineageTag: bef8450e-0b6b-5114-8d60-4db5fb82cee6
+		summarizeBy: none
+		sourceColumn: CustomerKey
+
+	column Customer
+		dataType: string
+		lineageTag: 8c7c2755-9d0b-557c-a4ca-7fb907f6e984
+		summarizeBy: none
+		sourceColumn: Customer
+
+	column City
+		dataType: string
+		lineageTag: e4f25697-5c8b-5466-8901-a35ac64dc60b
+		summarizeBy: none
+		sourceColumn: City
+
+	column State
+		dataType: string
+		lineageTag: 93e5aae0-4ff8-5f70-afab-5a3b586ec5aa
+		summarizeBy: none
+		sourceColumn: State
+
+	column Country
+		dataType: string
+		lineageTag: 92f59b8a-5769-56a7-9e60-48e99d0e8447
+		summarizeBy: none
+		sourceColumn: Country
+
+	partition Customer = m
+		mode: import
+		source =
+				let
+				    Source = Csv.Document(Web.Contents("https://raw.githubusercontent.com/owilliams84/powerbi-adventureworks-performance/main/data/dim_customer.csv"), [Delimiter=",", Columns=5, Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+				    #"Promoted Headers" = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+				    #"Applied Types" = Table.TransformColumnTypes(#"Promoted Headers", {{"CustomerKey", Int64.Type}, {"Customer", type text}, {"City", type text}, {"State", type text}, {"Country", type text}}, "en-US")
+				in
+				    #"Applied Types"
+
+	annotation PBI_ResultType = Table

@@ -1,0 +1,46 @@
+/// One row per order. 'Order Size' bands the whole order's value, fixed at build time, so
+/// an order keeps its band whatever product filter is on the page.
+table 'Sales Order'
+	lineageTag: 01939ae1-1ccc-5415-87e7-889435ccf0bf
+
+	column 'Order ID'
+		dataType: string
+		isKey
+		lineageTag: c87d6d94-73d3-5511-9e3a-476f9b1a0e54
+		summarizeBy: none
+		sourceColumn: OrderID
+
+	column 'Order Value'
+		dataType: double
+		isHidden
+		formatString: \$#,0
+		lineageTag: 463d4375-2522-57b2-bfdb-72b4d0a50d2b
+		summarizeBy: none
+		sourceColumn: OrderValue
+
+	column 'Order Size'
+		dataType: string
+		lineageTag: ad47ab4f-dacc-5d86-b5c8-26026d308f58
+		summarizeBy: none
+		sourceColumn: OrderSize
+		sortByColumn: 'Order Size Sort'
+
+	column 'Order Size Sort'
+		dataType: int64
+		isHidden
+		formatString: 0
+		lineageTag: 1c43aaf3-c40a-54a4-90fa-55d327b598c0
+		summarizeBy: none
+		sourceColumn: OrderSizeSort
+
+	partition 'Sales Order' = m
+		mode: import
+		source =
+				let
+				    Source = Csv.Document(Web.Contents("https://raw.githubusercontent.com/owilliams84/powerbi-adventureworks-performance/main/data/dim_order.csv"), [Delimiter=",", Columns=4, Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+				    #"Promoted Headers" = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+				    #"Applied Types" = Table.TransformColumnTypes(#"Promoted Headers", {{"OrderID", type text}, {"OrderValue", type number}, {"OrderSize", type text}, {"OrderSizeSort", Int64.Type}}, "en-US")
+				in
+				    #"Applied Types"
+
+	annotation PBI_ResultType = Table

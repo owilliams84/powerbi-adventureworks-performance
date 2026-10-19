@@ -1,0 +1,22 @@
+model Model
+	culture: en-US
+	defaultPowerBIDataSourceVersion: powerBI_V3
+	discourageImplicitMeasures
+	sourceQueryCulture: en-US
+
+annotation PBI_QueryOrder = ["Date", "Product", "Territory", "Reseller", "Customer", "Channel", "Line Size", "Sales Order", "Sales"]
+
+annotation __PBI_TimeIntelligenceEnabled = 0
+
+annotation PBI_ProTooling = ["DevMode"]
+
+ref table Date
+ref table Product
+ref table Territory
+ref table Reseller
+ref table Customer
+ref table Channel
+ref table 'Line Size'
+ref table 'Sales Order'
+ref table Sales
+ref table Metrics

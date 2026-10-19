@@ -1,0 +1,89 @@
+/// One row per day over three whole fiscal years, 1 Jul 2017 to 30 Jun 2020. Fiscal years
+/// run July to June and are named for the year they end in: FY2020 is Jul 2019 to Jun 2020.
+table Date
+	lineageTag: d3f86c71-9d77-5cae-ad9d-2495a751f717
+	dataCategory: Time
+
+	column Date
+		dataType: dateTime
+		isKey
+		formatString: d mmm yyyy
+		lineageTag: 82926aaf-ee24-55fc-9555-4667e0c95891
+		summarizeBy: none
+		sourceColumn: Date
+
+	column 'Fiscal Year'
+		dataType: string
+		lineageTag: 6d1eaab7-c7c5-590f-a447-d86100806295
+		summarizeBy: none
+		sourceColumn: FiscalYear
+		sortByColumn: 'FY Sort'
+
+	column 'FY Sort'
+		dataType: int64
+		isHidden
+		formatString: 0
+		lineageTag: 16e290b9-05c8-5285-9cd2-d58bd9dc7904
+		summarizeBy: none
+		sourceColumn: FYSort
+
+	column Month
+		dataType: string
+		lineageTag: e4fd504b-d758-56eb-84cb-a717830a9bda
+		summarizeBy: none
+		sourceColumn: Month
+		sortByColumn: 'Month No'
+
+	/// 1 = July.
+	column 'Month No'
+		dataType: int64
+		isHidden
+		formatString: 0
+		lineageTag: 33e1c3a0-7153-5d01-afe7-119b59084f7d
+		summarizeBy: none
+		sourceColumn: MonthNo
+
+	column 'Month Year'
+		dataType: string
+		lineageTag: f79eff13-d726-5598-afce-3a92610d50e7
+		summarizeBy: none
+		sourceColumn: MonthYear
+		sortByColumn: 'Month Index'
+
+	/// 0 for Jul 2017 to 35 for Jun 2020: the x position of a sparkline point.
+	column 'Month Index'
+		dataType: int64
+		isHidden
+		formatString: 0
+		lineageTag: e5cfdac2-430f-5c83-b9a4-58a1a5fa54aa
+		summarizeBy: none
+		sourceColumn: MonthIndex
+
+	column 'Month Start'
+		dataType: dateTime
+		isHidden
+		formatString: mmm yyyy
+		lineageTag: 60a63958-3b25-50e4-8711-b47f90f14e2d
+		summarizeBy: none
+		sourceColumn: MonthStart
+
+	/// 1 on 1 July. Prior-year measures cut the earlier year on this column.
+	column 'Day of FY'
+		dataType: int64
+		isHidden
+		formatString: 0
+		lineageTag: 408dd770-6ea8-53e5-af8a-ad5f58d71c57
+		summarizeBy: none
+		sourceColumn: DayOfFY
+
+	partition Date = m
+		mode: import
+		source =
+				let
+				    Source = Csv.Document(Web.Contents("https://raw.githubusercontent.com/owilliams84/powerbi-adventureworks-performance/main/data/dim_date.csv"), [Delimiter=",", Columns=9, Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+				    #"Promoted Headers" = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+				    #"Applied Types" = Table.TransformColumnTypes(#"Promoted Headers", {{"Date", type date}, {"FiscalYear", type text}, {"FYSort", Int64.Type}, {"Month", type text}, {"MonthNo", Int64.Type}, {"MonthYear", type text}, {"MonthIndex", Int64.Type}, {"MonthStart", type date}, {"DayOfFY", Int64.Type}}, "en-US")
+				in
+				    #"Applied Types"
+
+	annotation PBI_ResultType = Table

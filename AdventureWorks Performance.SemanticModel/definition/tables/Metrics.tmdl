@@ -1,0 +1,840 @@
+/// Measure-only table: every number on the report comes from here. The hidden column
+/// exists because a table needs one.
+table Metrics
+	lineageTag: 229bc061-44ba-547a-ac2f-5a52ce9ce6cf
+
+	/// Sales Amount: after discount.
+	measure Sales = SUM(Sales[Sales Amount])
+		formatString: \$#,0
+		displayFolder: Base
+		lineageTag: 227cde79-3b43-5a4d-a600-c9ade6c637f8
+
+	measure Cost = SUM(Sales[Total Product Cost])
+		formatString: \$#,0
+		displayFolder: Base
+		lineageTag: 57a24b83-ba1e-5295-ba19-2af961b8bf3f
+
+	measure 'Gross Profit' = [Sales] - [Cost]
+		formatString: \$#,0
+		displayFolder: Base
+		lineageTag: fd07362c-2b99-585a-b7e6-3097197cf073
+
+	measure 'Gross Margin %' = DIVIDE([Gross Profit], [Sales])
+		formatString: 0.0%
+		displayFolder: Base
+		lineageTag: cfd25eca-2b7d-521e-abaa-0d668136e576
+
+	/// Distinct orders, not lines.
+	measure Orders = DISTINCTCOUNT(Sales[Order ID])
+		formatString: #,0
+		displayFolder: Base
+		lineageTag: 640e405e-fdf6-5988-99b5-92a577844200
+
+	measure Units = SUM(Sales[Quantity])
+		formatString: #,0
+		displayFolder: Base
+		lineageTag: 8c0d31d4-9d4a-5ce9-8bc5-81e42bf511cd
+
+	/// Distinct buying accounts: internet customers plus resellers.
+	measure Customers = DISTINCTCOUNT(Sales[Account Key])
+		formatString: #,0
+		displayFolder: Base
+		lineageTag: d37b7801-f9e2-53c7-9ee1-d9b92738346e
+
+	measure 'Average Order Value' = DIVIDE([Sales], [Orders])
+		formatString: \$#,0
+		displayFolder: Base
+		lineageTag: 195ec4ee-0af5-5ac5-9437-586af5037954
+
+	measure 'Units per Order' = DIVIDE([Units], [Orders])
+		formatString: 0.0
+		displayFolder: Base
+		lineageTag: 09a81145-9817-5cde-bd1c-b7b632a15015
+
+	measure 'Sales per Customer' = DIVIDE([Sales], [Customers])
+		formatString: \$#,0
+		displayFolder: Base
+		lineageTag: 71353fb3-4b7f-5da3-bea0-2f1f41031646
+
+	/// Quantity at list price.
+	measure 'List Value' = SUM(Sales[Extended Amount])
+		formatString: \$#,0
+		displayFolder: Base
+		lineageTag: 5d865392-afc3-5369-a0cd-a20d541d1175
+
+	/// List value less sales amount.
+	measure Discount = [List Value] - [Sales]
+		formatString: \$#,0
+		displayFolder: Base
+		lineageTag: 5510c151-fbcf-532a-a390-89e41890bff3
+
+	measure 'Discount Rate' = DIVIDE([Discount], [List Value])
+		formatString: 0.0%
+		displayFolder: Base
+		lineageTag: 5bb805b1-ab34-5107-9519-5456033f3a57
+
+	/// Sales on lines that carried any discount.
+	measure 'Discounted Sales' = CALCULATE([Sales], KEEPFILTERS(FILTER(Sales, Sales[Extended Amount] - Sales[Sales Amount] > 0.005)))
+		formatString: \$#,0
+		displayFolder: Base
+		lineageTag: 7486de99-52f4-58e4-acfe-33f3d54da17d
+
+	measure 'Discounted Sales Share' = DIVIDE([Discounted Sales], [Sales])
+		formatString: 0.0%
+		displayFolder: Base
+		lineageTag: b5d716e4-f583-5d61-b0fc-7e8097902ec3
+
+	/// Sales in millions, for dense matrices.
+	measure 'Sales $M' = DIVIDE([Sales], 1000000)
+		formatString: 0.0
+		displayFolder: Base
+		lineageTag: a23fc438-e9fd-5a8b-86a5-a3b1983ebffc
+
+	/// Sales with empty months as zero, so a month without reseller orders draws as a dip
+	/// rather than a gap in the line.
+	measure 'Sales Line' = [Sales] + 0
+		formatString: \$#,0
+		displayFolder: Base
+		lineageTag: b919b566-6c8b-5362-8c51-a58ca6c76f70
+
+	measure 'Sales Share of Channels' = DIVIDE([Sales], CALCULATE([Sales], REMOVEFILTERS(Channel)))
+		formatString: 0.0%
+		displayFolder: Base
+		lineageTag: 47e9a96e-7b3b-5927-bd7c-d964a59fd8d3
+
+	measure 'Sales Share of Regions' = DIVIDE([Sales], CALCULATE([Sales], REMOVEFILTERS(Territory)))
+		formatString: 0.0%
+		displayFolder: Base
+		lineageTag: 7d421ce0-313e-593d-842b-46014eaeca18
+
+	/// Prior fiscal year. When the year on screen is the one the data ends in (FY2020, to 15 Jun),
+	/// the prior year is cut at the same day of its fiscal year. Blank in the first year.
+	measure 'Sales PY' =
+			VAR FY = SELECTEDVALUE('Date'[FY Sort])
+			VAR EndDate = CALCULATE(MAX(Sales[Order Date]), REMOVEFILTERS())
+			VAR EndFY = YEAR(EndDate) + IF(MONTH(EndDate) >= 7, 1, 0)
+			VAR FirstFY = CALCULATE(MIN(Sales[Account First FY]), REMOVEFILTERS())
+			VAR CutDay = IF(FY = EndFY, DATEDIFF(DATE(EndFY - 2, 7, 1), EDATE(EndDate, -12), DAY) + 1, 366)
+			RETURN
+			    IF(
+			        NOT ISBLANK(FY) && FY > FirstFY,
+			        CALCULATE(
+			            [Sales],
+			            REMOVEFILTERS('Date'[Fiscal Year], 'Date'[FY Sort]),
+			            'Date'[FY Sort] = FY - 1,
+			            'Date'[Day of FY] <= CutDay
+			        )
+			    )
+		formatString: \$#,0
+		displayFolder: Prior year
+		lineageTag: bd90b26e-2b38-5df4-9204-6361bef5fc81
+
+	measure 'Gross Profit PY' =
+			VAR FY = SELECTEDVALUE('Date'[FY Sort])
+			VAR EndDate = CALCULATE(MAX(Sales[Order Date]), REMOVEFILTERS())
+			VAR EndFY = YEAR(EndDate) + IF(MONTH(EndDate) >= 7, 1, 0)
+			VAR FirstFY = CALCULATE(MIN(Sales[Account First FY]), REMOVEFILTERS())
+			VAR CutDay = IF(FY = EndFY, DATEDIFF(DATE(EndFY - 2, 7, 1), EDATE(EndDate, -12), DAY) + 1, 366)
+			RETURN
+			    IF(
+			        NOT ISBLANK(FY) && FY > FirstFY,
+			        CALCULATE(
+			            [Gross Profit],
+			            REMOVEFILTERS('Date'[Fiscal Year], 'Date'[FY Sort]),
+			            'Date'[FY Sort] = FY - 1,
+			            'Date'[Day of FY] <= CutDay
+			        )
+			    )
+		formatString: \$#,0
+		displayFolder: Prior year
+		lineageTag: bcc3f09a-3dd6-5ec4-ac41-4bc992047734
+
+	measure 'Gross Margin % PY' = DIVIDE([Gross Profit PY], [Sales PY])
+		formatString: 0.0%
+		displayFolder: Prior year
+		lineageTag: cef1b288-43b8-5ecd-ab38-1b444b000f77
+
+	measure 'Orders PY' =
+			VAR FY = SELECTEDVALUE('Date'[FY Sort])
+			VAR EndDate = CALCULATE(MAX(Sales[Order Date]), REMOVEFILTERS())
+			VAR EndFY = YEAR(EndDate) + IF(MONTH(EndDate) >= 7, 1, 0)
+			VAR FirstFY = CALCULATE(MIN(Sales[Account First FY]), REMOVEFILTERS())
+			VAR CutDay = IF(FY = EndFY, DATEDIFF(DATE(EndFY - 2, 7, 1), EDATE(EndDate, -12), DAY) + 1, 366)
+			RETURN
+			    IF(
+			        NOT ISBLANK(FY) && FY > FirstFY,
+			        CALCULATE(
+			            [Orders],
+			            REMOVEFILTERS('Date'[Fiscal Year], 'Date'[FY Sort]),
+			            'Date'[FY Sort] = FY - 1,
+			            'Date'[Day of FY] <= CutDay
+			        )
+			    )
+		formatString: #,0
+		displayFolder: Prior year
+		lineageTag: 38fdcf12-484f-5b6b-8b02-bff87204cc4e
+
+	measure 'Customers PY' =
+			VAR FY = SELECTEDVALUE('Date'[FY Sort])
+			VAR EndDate = CALCULATE(MAX(Sales[Order Date]), REMOVEFILTERS())
+			VAR EndFY = YEAR(EndDate) + IF(MONTH(EndDate) >= 7, 1, 0)
+			VAR FirstFY = CALCULATE(MIN(Sales[Account First FY]), REMOVEFILTERS())
+			VAR CutDay = IF(FY = EndFY, DATEDIFF(DATE(EndFY - 2, 7, 1), EDATE(EndDate, -12), DAY) + 1, 366)
+			RETURN
+			    IF(
+			        NOT ISBLANK(FY) && FY > FirstFY,
+			        CALCULATE(
+			            [Customers],
+			            REMOVEFILTERS('Date'[Fiscal Year], 'Date'[FY Sort]),
+			            'Date'[FY Sort] = FY - 1,
+			            'Date'[Day of FY] <= CutDay
+			        )
+			    )
+		formatString: #,0
+		displayFolder: Prior year
+		lineageTag: 3166997e-34e0-5f0c-97b7-9a23c950959b
+
+	measure 'Average Order Value PY' = DIVIDE([Sales PY], [Orders PY])
+		formatString: \$#,0
+		displayFolder: Prior year
+		lineageTag: 0e16c791-115a-5c36-abee-be9cdfc758d7
+
+	measure 'Sales vs PY' = VAR P = [Sales PY] RETURN IF(NOT ISBLANK(P), [Sales] - P)
+		formatString: \$#,0
+		displayFolder: Prior year
+		lineageTag: 50162bc0-0b67-5cd9-bb4e-ddb1f86750b2
+
+	measure 'Sales vs PY %' = VAR P = [Sales PY] RETURN IF(NOT ISBLANK(P), DIVIDE([Sales] - P, P))
+		formatString: 0.0%
+		displayFolder: Prior year
+		lineageTag: 720e79cd-f015-55d3-b755-cd699967203f
+
+	/// In percentage points, shown as a percentage.
+	measure 'Gross Margin Change' = VAR P = [Gross Margin % PY] RETURN IF(NOT ISBLANK(P), [Gross Margin %] - P)
+		formatString: 0.0%
+		displayFolder: Prior year
+		lineageTag: a56954b2-b472-5811-a769-fe9c99d952a5
+
+	/// Growth as text for tables: 'new' where last year was nil or tiny, so a product launched
+	/// late in FY2019 does not read +18,941%.
+	measure 'Sales vs PY Label' =
+			VAR FY = SELECTEDVALUE('Date'[FY Sort])
+			VAR EndDate = CALCULATE(MAX(Sales[Order Date]), REMOVEFILTERS())
+			VAR EndFY = YEAR(EndDate) + IF(MONTH(EndDate) >= 7, 1, 0)
+			VAR FirstFY = CALCULATE(MIN(Sales[Account First FY]), REMOVEFILTERS())
+			VAR CutDay = IF(FY = EndFY, DATEDIFF(DATE(EndFY - 2, 7, 1), EDATE(EndDate, -12), DAY) + 1, 366)
+			VAR S = [Sales]
+			VAR P = [Sales PY]
+			RETURN
+			    SWITCH(
+			        TRUE(),
+			        ISBLANK(FY) || FY <= FirstFY || ISBLANK(S), BLANK(),
+			        ISBLANK(P) || P <= 0 || S / P > 20, "new",
+			        IF(S >= P, "+", "-") & FORMAT(ABS(S / P - 1), "0.0%")
+			    )
+		displayFolder: Prior year
+		lineageTag: 2bf8863e-c1b4-5b42-93b4-1aa9ccf03618
+
+	/// Green when sales rose on the prior year, red when they fell.
+	measure 'Growth Colour' = VAR C = [Sales vs PY] RETURN IF(NOT ISBLANK(C), IF(C >= 0, "#1E7A4C", "#B3261E"))
+		displayFolder: Prior year
+		lineageTag: db9806f6-c822-5265-ad5e-c24e692494ce
+
+	/// Accounts whose first order in the data falls in the fiscal year on screen. Every account
+	/// is new in FY2018, where the data starts.
+	measure 'New Customers' =
+			VAR FY = SELECTEDVALUE('Date'[FY Sort])
+			RETURN
+			    IF(NOT ISBLANK(FY), CALCULATE([Customers], KEEPFILTERS(Sales[Account First FY] = FY)) + 0)
+		formatString: #,0
+		displayFolder: Customers
+		lineageTag: e7bf4a51-52b7-52e8-811f-26b7cff17c31
+
+	measure 'Returning Customers' = [Customers] - [New Customers]
+		formatString: #,0
+		displayFolder: Customers
+		lineageTag: f049fa3c-faad-5ba4-99c8-e13fbe080040
+
+	measure 'New Customer Share' = DIVIDE([New Customers], [Customers])
+		formatString: 0.0%
+		displayFolder: Customers
+		lineageTag: 064109a3-b4ed-5b8f-9337-50a3586cd5b9
+
+	measure 'Sales from Returning Customers' =
+			VAR FY = SELECTEDVALUE('Date'[FY Sort])
+			RETURN
+			    IF(NOT ISBLANK(FY), CALCULATE([Sales], KEEPFILTERS(Sales[Account First FY] < FY)) + 0)
+		formatString: \$#,0
+		displayFolder: Customers
+		lineageTag: 6e32fbb0-7072-599e-b1a7-7c9f7ff7c4e7
+
+	measure 'Returning Sales Share' = DIVIDE([Sales from Returning Customers], [Sales])
+		formatString: 0.0%
+		displayFolder: Customers
+		lineageTag: 24183a87-86cb-5efa-868d-80e5c42e6bc3
+
+	/// 'FY2019 to 15 Jun' or 'FY2018'; blank in the first year.
+	measure 'Comparison Label' =
+			VAR FY = SELECTEDVALUE('Date'[FY Sort])
+			VAR EndDate = CALCULATE(MAX(Sales[Order Date]), REMOVEFILTERS())
+			VAR EndFY = YEAR(EndDate) + IF(MONTH(EndDate) >= 7, 1, 0)
+			VAR FirstFY = CALCULATE(MIN(Sales[Account First FY]), REMOVEFILTERS())
+			VAR CutDay = IF(FY = EndFY, DATEDIFF(DATE(EndFY - 2, 7, 1), EDATE(EndDate, -12), DAY) + 1, 366)
+			RETURN
+			    IF(
+			        NOT ISBLANK(FY) && FY > FirstFY,
+			        "FY" & (FY - 1) & IF(FY = EndFY, " to " & FORMAT(EDATE(EndDate, -12), "d mmm"), "")
+			    )
+		displayFolder: Labels
+		lineageTag: fee22c13-c7bb-5dc5-a47e-fcaf04c205c0
+
+	measure 'Period Label' =
+			VAR FY = SELECTEDVALUE('Date'[FY Sort])
+			VAR EndDate = CALCULATE(MAX(Sales[Order Date]), REMOVEFILTERS())
+			VAR EndFY = YEAR(EndDate) + IF(MONTH(EndDate) >= 7, 1, 0)
+			VAR FirstFY = CALCULATE(MIN(Sales[Account First FY]), REMOVEFILTERS())
+			VAR CutDay = IF(FY = EndFY, DATEDIFF(DATE(EndFY - 2, 7, 1), EDATE(EndDate, -12), DAY) + 1, 366)
+			RETURN
+			    IF(
+			        NOT ISBLANK(FY),
+			        "FY" & FY & " (Jul " & (FY - 1) & " to " & IF(FY = EndFY, FORMAT(EndDate, "d mmm yyyy"), "Jun " & FY) & ")"
+			    )
+		displayFolder: Labels
+		lineageTag: bda8cd76-9a8a-528f-b1fb-c38e677890c8
+
+	measure 'Scope Label' =
+			VAR Ch = IF(HASONEVALUE(Channel[Channel]), SELECTEDVALUE(Channel[Channel]) & " channel", "both channels")
+			RETURN Ch
+		displayFolder: Labels
+		lineageTag: a953fcc5-4300-518f-981d-1ec9a577c9f3
+
+	measure 'Title Standfirst' =
+			VAR S = [Sales]
+			VAR P = [Sales PY]
+			VAR G = DIVIDE(S - P, P)
+			VAR Change =
+			    IF(
+			        ISBLANK(P),
+			        ", the first year in the data",
+			        ", " & IF(G >= 0, "up ", "down ") & FORMAT(ABS(G), "0.0%") & " on " & [Comparison Label]
+			    )
+			RETURN
+			    [Period Label] & ", " & [Scope Label] & ": sales of " & IF(ABS(S) >= 1000000, FORMAT(S / 1000000, "$#,0.0") & "M", IF(ABS(S) >= 1000, FORMAT(S / 1000, "$#,0.0") & "K", FORMAT(S, "$#,0"))) & Change
+			        & ", from " & FORMAT([Orders], "#,0") & " orders at a gross margin of " & FORMAT([Gross Margin %], "0.0%") & "."
+		displayFolder: Labels
+		lineageTag: c4ffad15-6472-5076-b112-d75b6ed11821
+
+	measure 'Subtitle Waterfall' =
+			VAR L = [Comparison Label]
+			RETURN
+			    IF(
+			        ISBLANK(L),
+			        "FY2018 is the first year in the data, so there is nothing to compare",
+			        "Change in sales on " & L & ", by category. Green rose, red fell"
+			    )
+		displayFolder: Labels
+		lineageTag: 5ba58ab6-6059-575f-bda6-5481892ee186
+
+	measure 'Subtitle Growth' =
+			VAR L = [Comparison Label]
+			RETURN
+			    IF(ISBLANK(L), "FY2018 is the first year in the data, so there is nothing to compare",
+			        "Sales growth on " & L & ". Green rose, red fell")
+		displayFolder: Labels
+		lineageTag: 9d7b95af-17a2-5f51-b8d1-72005562f430
+
+	measure 'Subtitle Margin' =
+			VAR L = [Comparison Label]
+			RETURN
+			    IF(ISBLANK(L), "FY2018 has no prior year; this year's margin only",
+			        "The 8 biggest subcategories: gross margin in " & L & " and this year")
+		displayFolder: Labels
+		lineageTag: 1c101ae7-b38c-5999-8b5a-4ac19b9c22bb
+
+	measure 'Subtitle Discounts' =
+			VAR D = [Discount]
+			RETURN
+			    IF(
+			        D > 1,
+			        FORMAT([Discounted Sales Share], "0.0%") & " of sales carried a discount, worth " & IF(ABS(D) >= 1000000, FORMAT(D / 1000000, "$#,0.0") & "M", IF(ABS(D) >= 1000, FORMAT(D / 1000, "$#,0.0") & "K", FORMAT(D, "$#,0")))
+			            & ". Bubble size is the discount",
+			        "No discounts here: internet sales are always at list price"
+			    )
+		displayFolder: Labels
+		lineageTag: 5ae9da0a-b8c5-559a-85ba-2cc8baea94ee
+
+	measure 'Card Sales' =
+			VAR FY = SELECTEDVALUE('Date'[FY Sort])
+			VAR FirstFY = CALCULATE(MIN(Sales[Account First FY]), REMOVEFILTERS())
+			VAR Chg = [Sales vs PY %]
+			VAR Lbl = [Comparison Label]
+			VAR Col = IF(Chg >= 0, "#1E7A4C", "#B3261E")
+			VAR ChgTxt = IF(ISBLANK(Chg), "", IF(Chg >= 0, "&#9650; +", "&#9660; &#8722;") & FORMAT(ABS(Chg), "0.0%"))
+			VAR Tail = IF(ISBLANK(Chg), "No prior year to compare", " vs " & Lbl)
+			VAR T =
+			    ADDCOLUMNS(
+			        ALL('Date'[Month Index]),
+			        "@v", VAR i = 'Date'[Month Index] RETURN CALCULATE([Sales], REMOVEFILTERS('Date'), 'Date'[Month Index] = i)
+			    )
+			VAR P = FILTER(T, NOT ISBLANK([@v]))
+			VAR Lo = MIN(0, MINX(P, [@v]))
+			VAR Hi = MAXX(P, [@v])
+			VAR Span = IF(Hi = Lo, 1, Hi - Lo)
+			VAR SelStart = (FY - FirstFY) * 12
+			VAR Pts = CONCATENATEX(P, FORMAT(14 + 'Date'[Month Index] * 5.6, "0.0") & "," & FORMAT(112 - ([@v] - Lo) / Span * 24, "0.0"), " ", 'Date'[Month Index], ASC)
+			VAR PtsSel = CONCATENATEX(FILTER(P, 'Date'[Month Index] >= SelStart && 'Date'[Month Index] < SelStart + 12), FORMAT(14 + 'Date'[Month Index] * 5.6, "0.0") & "," & FORMAT(112 - ([@v] - Lo) / Span * 24, "0.0"), " ", 'Date'[Month Index], ASC)
+			VAR Svg =
+			    "<svg xmlns='http://www.w3.org/2000/svg' width='220' height='120' viewBox='0 0 220 120' font-family='Segoe UI, sans-serif'>"
+			        & "<rect x='0.5' y='0.5' width='219' height='119' rx='4' fill='#FFFFFF' stroke='#E3E7EF'/><rect width='3' height='120' fill='#C9A227'/>"
+			        & "<text x='14' y='22' font-size='11' font-weight='700' fill='#667284'>TOTAL SALES</text>"
+			        & "<text x='14' y='52' font-size='26' font-weight='700' fill='#0A0917'>" & IF(ABS([Sales]) >= 1000000, FORMAT([Sales] / 1000000, "$#,0.0") & "M", IF(ABS([Sales]) >= 1000, FORMAT([Sales] / 1000, "$#,0.0") & "K", FORMAT([Sales], "$#,0"))) & "</text>"
+			        & "<text x='14' y='71' font-size='10.5'><tspan font-weight='700' fill='" & Col & "'>" & ChgTxt & "</tspan><tspan fill='#667284'>" & Tail & "</tspan></text>"
+			        & IF(NOT ISBLANK(FY), "<rect x='" & FORMAT(14 + SelStart * 5.6 - 2.8, "0.0") & "' y='84' width='67.2' height='30' fill='#F4F6FA'/>")
+			        & "<polyline points='" & Pts & "' fill='none' stroke='#BCC1D2' stroke-width='1.3'/>"
+			        & "<polyline points='" & PtsSel & "' fill='none' stroke='#111F38' stroke-width='2'/>"
+			        & "</svg>"
+			RETURN
+			    IF(NOT ISBLANK(IF(ABS([Sales]) >= 1000000, FORMAT([Sales] / 1000000, "$#,0.0") & "M", IF(ABS([Sales]) >= 1000, FORMAT([Sales] / 1000, "$#,0.0") & "K", FORMAT([Sales], "$#,0")))), "data:image/svg+xml;utf8," & SUBSTITUTE(SUBSTITUTE(Svg, "%", "%25"), "#", "%23"))
+		dataCategory: ImageUrl
+		displayFolder: Cards
+		lineageTag: f13f669a-9c52-5a19-b30d-3de6d7ac05db
+
+	measure 'Card Gross Profit' =
+			VAR FY = SELECTEDVALUE('Date'[FY Sort])
+			VAR FirstFY = CALCULATE(MIN(Sales[Account First FY]), REMOVEFILTERS())
+			VAR Chg = VAR P = [Gross Profit PY] RETURN IF(NOT ISBLANK(P), DIVIDE([Gross Profit] - P, ABS(P)))
+			VAR Lbl = [Comparison Label]
+			VAR Col = IF(Chg >= 0, "#1E7A4C", "#B3261E")
+			VAR ChgTxt = IF(ISBLANK(Chg), "", IF(Chg >= 0, "&#9650; +", "&#9660; &#8722;") & FORMAT(ABS(Chg), "0.0%"))
+			VAR Tail = IF(ISBLANK(Chg), "No prior year to compare", " vs " & Lbl)
+			VAR T =
+			    ADDCOLUMNS(
+			        ALL('Date'[Month Index]),
+			        "@v", VAR i = 'Date'[Month Index] RETURN CALCULATE([Gross Profit], REMOVEFILTERS('Date'), 'Date'[Month Index] = i)
+			    )
+			VAR P = FILTER(T, NOT ISBLANK([@v]))
+			VAR Lo = MIN(0, MINX(P, [@v]))
+			VAR Hi = MAXX(P, [@v])
+			VAR Span = IF(Hi = Lo, 1, Hi - Lo)
+			VAR SelStart = (FY - FirstFY) * 12
+			VAR Pts = CONCATENATEX(P, FORMAT(14 + 'Date'[Month Index] * 5.6, "0.0") & "," & FORMAT(112 - ([@v] - Lo) / Span * 24, "0.0"), " ", 'Date'[Month Index], ASC)
+			VAR PtsSel = CONCATENATEX(FILTER(P, 'Date'[Month Index] >= SelStart && 'Date'[Month Index] < SelStart + 12), FORMAT(14 + 'Date'[Month Index] * 5.6, "0.0") & "," & FORMAT(112 - ([@v] - Lo) / Span * 24, "0.0"), " ", 'Date'[Month Index], ASC)
+			VAR Svg =
+			    "<svg xmlns='http://www.w3.org/2000/svg' width='220' height='120' viewBox='0 0 220 120' font-family='Segoe UI, sans-serif'>"
+			        & "<rect x='0.5' y='0.5' width='219' height='119' rx='4' fill='#FFFFFF' stroke='#E3E7EF'/><rect width='3' height='120' fill='#C9A227'/>"
+			        & "<text x='14' y='22' font-size='11' font-weight='700' fill='#667284'>GROSS PROFIT</text>"
+			        & "<text x='14' y='52' font-size='26' font-weight='700' fill='#0A0917'>" & IF(ABS([Gross Profit]) >= 1000000, FORMAT([Gross Profit] / 1000000, "$#,0.0") & "M", IF(ABS([Gross Profit]) >= 1000, FORMAT([Gross Profit] / 1000, "$#,0.0") & "K", FORMAT([Gross Profit], "$#,0"))) & "</text>"
+			        & "<text x='14' y='71' font-size='10.5'><tspan font-weight='700' fill='" & Col & "'>" & ChgTxt & "</tspan><tspan fill='#667284'>" & Tail & "</tspan></text>"
+			        & IF(NOT ISBLANK(FY), "<rect x='" & FORMAT(14 + SelStart * 5.6 - 2.8, "0.0") & "' y='84' width='67.2' height='30' fill='#F4F6FA'/>")
+			        & "<polyline points='" & Pts & "' fill='none' stroke='#BCC1D2' stroke-width='1.3'/>"
+			        & "<polyline points='" & PtsSel & "' fill='none' stroke='#111F38' stroke-width='2'/>"
+			        & "</svg>"
+			RETURN
+			    IF(NOT ISBLANK(IF(ABS([Gross Profit]) >= 1000000, FORMAT([Gross Profit] / 1000000, "$#,0.0") & "M", IF(ABS([Gross Profit]) >= 1000, FORMAT([Gross Profit] / 1000, "$#,0.0") & "K", FORMAT([Gross Profit], "$#,0")))), "data:image/svg+xml;utf8," & SUBSTITUTE(SUBSTITUTE(Svg, "%", "%25"), "#", "%23"))
+		dataCategory: ImageUrl
+		displayFolder: Cards
+		lineageTag: 5ee98686-6559-55fb-af8f-3ea62c17f1c8
+
+	measure 'Card Gross Margin' =
+			VAR FY = SELECTEDVALUE('Date'[FY Sort])
+			VAR FirstFY = CALCULATE(MIN(Sales[Account First FY]), REMOVEFILTERS())
+			VAR Chg = [Gross Margin Change]
+			VAR Lbl = [Comparison Label]
+			VAR Col = IF(Chg >= 0, "#1E7A4C", "#B3261E")
+			VAR ChgTxt = IF(ISBLANK(Chg), "", IF(Chg >= 0, "&#9650; +", "&#9660; &#8722;") & FORMAT(ABS(Chg) * 100, "0.0") & " pts")
+			VAR Tail = IF(ISBLANK(Chg), "No prior year to compare", " vs " & Lbl)
+			VAR T =
+			    ADDCOLUMNS(
+			        ALL('Date'[Month Index]),
+			        "@v", VAR i = 'Date'[Month Index] RETURN CALCULATE([Gross Margin %], REMOVEFILTERS('Date'), 'Date'[Month Index] = i)
+			    )
+			VAR P = FILTER(T, NOT ISBLANK([@v]))
+			VAR Lo = MINX(P, [@v])
+			VAR Hi = MAXX(P, [@v])
+			VAR Span = IF(Hi = Lo, 1, Hi - Lo)
+			VAR SelStart = (FY - FirstFY) * 12
+			VAR Pts = CONCATENATEX(P, FORMAT(14 + 'Date'[Month Index] * 5.6, "0.0") & "," & FORMAT(112 - ([@v] - Lo) / Span * 24, "0.0"), " ", 'Date'[Month Index], ASC)
+			VAR PtsSel = CONCATENATEX(FILTER(P, 'Date'[Month Index] >= SelStart && 'Date'[Month Index] < SelStart + 12), FORMAT(14 + 'Date'[Month Index] * 5.6, "0.0") & "," & FORMAT(112 - ([@v] - Lo) / Span * 24, "0.0"), " ", 'Date'[Month Index], ASC)
+			VAR Svg =
+			    "<svg xmlns='http://www.w3.org/2000/svg' width='220' height='120' viewBox='0 0 220 120' font-family='Segoe UI, sans-serif'>"
+			        & "<rect x='0.5' y='0.5' width='219' height='119' rx='4' fill='#FFFFFF' stroke='#E3E7EF'/><rect width='3' height='120' fill='#C9A227'/>"
+			        & "<text x='14' y='22' font-size='11' font-weight='700' fill='#667284'>GROSS MARGIN</text>"
+			        & "<text x='14' y='52' font-size='26' font-weight='700' fill='#0A0917'>" & FORMAT([Gross Margin %], "0.0%") & "</text>"
+			        & "<text x='14' y='71' font-size='10.5'><tspan font-weight='700' fill='" & Col & "'>" & ChgTxt & "</tspan><tspan fill='#667284'>" & Tail & "</tspan></text>"
+			        & IF(NOT ISBLANK(FY), "<rect x='" & FORMAT(14 + SelStart * 5.6 - 2.8, "0.0") & "' y='84' width='67.2' height='30' fill='#F4F6FA'/>")
+			        & "<polyline points='" & Pts & "' fill='none' stroke='#BCC1D2' stroke-width='1.3'/>"
+			        & "<polyline points='" & PtsSel & "' fill='none' stroke='#111F38' stroke-width='2'/>"
+			        & "</svg>"
+			RETURN
+			    IF(NOT ISBLANK(FORMAT([Gross Margin %], "0.0%")), "data:image/svg+xml;utf8," & SUBSTITUTE(SUBSTITUTE(Svg, "%", "%25"), "#", "%23"))
+		dataCategory: ImageUrl
+		displayFolder: Cards
+		lineageTag: 1e59a354-34c5-54c3-b920-5b80675d6657
+
+	measure 'Card Orders' =
+			VAR FY = SELECTEDVALUE('Date'[FY Sort])
+			VAR FirstFY = CALCULATE(MIN(Sales[Account First FY]), REMOVEFILTERS())
+			VAR Chg = VAR P = [Orders PY] RETURN IF(NOT ISBLANK(P), DIVIDE([Orders] - P, P))
+			VAR Lbl = [Comparison Label]
+			VAR Col = IF(Chg >= 0, "#1E7A4C", "#B3261E")
+			VAR ChgTxt = IF(ISBLANK(Chg), "", IF(Chg >= 0, "&#9650; +", "&#9660; &#8722;") & FORMAT(ABS(Chg), "0.0%"))
+			VAR Tail = IF(ISBLANK(Chg), "No prior year to compare", " vs " & Lbl)
+			VAR T =
+			    ADDCOLUMNS(
+			        ALL('Date'[Month Index]),
+			        "@v", VAR i = 'Date'[Month Index] RETURN CALCULATE([Orders], REMOVEFILTERS('Date'), 'Date'[Month Index] = i)
+			    )
+			VAR P = FILTER(T, NOT ISBLANK([@v]))
+			VAR Lo = MIN(0, MINX(P, [@v]))
+			VAR Hi = MAXX(P, [@v])
+			VAR Span = IF(Hi = Lo, 1, Hi - Lo)
+			VAR SelStart = (FY - FirstFY) * 12
+			VAR Pts = CONCATENATEX(P, FORMAT(14 + 'Date'[Month Index] * 5.6, "0.0") & "," & FORMAT(112 - ([@v] - Lo) / Span * 24, "0.0"), " ", 'Date'[Month Index], ASC)
+			VAR PtsSel = CONCATENATEX(FILTER(P, 'Date'[Month Index] >= SelStart && 'Date'[Month Index] < SelStart + 12), FORMAT(14 + 'Date'[Month Index] * 5.6, "0.0") & "," & FORMAT(112 - ([@v] - Lo) / Span * 24, "0.0"), " ", 'Date'[Month Index], ASC)
+			VAR Svg =
+			    "<svg xmlns='http://www.w3.org/2000/svg' width='220' height='120' viewBox='0 0 220 120' font-family='Segoe UI, sans-serif'>"
+			        & "<rect x='0.5' y='0.5' width='219' height='119' rx='4' fill='#FFFFFF' stroke='#E3E7EF'/><rect width='3' height='120' fill='#C9A227'/>"
+			        & "<text x='14' y='22' font-size='11' font-weight='700' fill='#667284'>ORDERS</text>"
+			        & "<text x='14' y='52' font-size='26' font-weight='700' fill='#0A0917'>" & FORMAT([Orders], "#,0") & "</text>"
+			        & "<text x='14' y='71' font-size='10.5'><tspan font-weight='700' fill='" & Col & "'>" & ChgTxt & "</tspan><tspan fill='#667284'>" & Tail & "</tspan></text>"
+			        & IF(NOT ISBLANK(FY), "<rect x='" & FORMAT(14 + SelStart * 5.6 - 2.8, "0.0") & "' y='84' width='67.2' height='30' fill='#F4F6FA'/>")
+			        & "<polyline points='" & Pts & "' fill='none' stroke='#BCC1D2' stroke-width='1.3'/>"
+			        & "<polyline points='" & PtsSel & "' fill='none' stroke='#111F38' stroke-width='2'/>"
+			        & "</svg>"
+			RETURN
+			    IF(NOT ISBLANK(FORMAT([Orders], "#,0")), "data:image/svg+xml;utf8," & SUBSTITUTE(SUBSTITUTE(Svg, "%", "%25"), "#", "%23"))
+		dataCategory: ImageUrl
+		displayFolder: Cards
+		lineageTag: 40bc1b77-51ee-5b9c-9625-1be38b1e9379
+
+	measure 'Card Average Order' =
+			VAR FY = SELECTEDVALUE('Date'[FY Sort])
+			VAR FirstFY = CALCULATE(MIN(Sales[Account First FY]), REMOVEFILTERS())
+			VAR Chg = VAR P = [Average Order Value PY] RETURN IF(NOT ISBLANK(P), DIVIDE([Average Order Value] - P, P))
+			VAR Lbl = [Comparison Label]
+			VAR Col = IF(Chg >= 0, "#1E7A4C", "#B3261E")
+			VAR ChgTxt = IF(ISBLANK(Chg), "", IF(Chg >= 0, "&#9650; +", "&#9660; &#8722;") & FORMAT(ABS(Chg), "0.0%"))
+			VAR Tail = IF(ISBLANK(Chg), "No prior year to compare", " vs " & Lbl)
+			VAR T =
+			    ADDCOLUMNS(
+			        ALL('Date'[Month Index]),
+			        "@v", VAR i = 'Date'[Month Index] RETURN CALCULATE([Average Order Value], REMOVEFILTERS('Date'), 'Date'[Month Index] = i)
+			    )
+			VAR P = FILTER(T, NOT ISBLANK([@v]))
+			VAR Lo = MIN(0, MINX(P, [@v]))
+			VAR Hi = MAXX(P, [@v])
+			VAR Span = IF(Hi = Lo, 1, Hi - Lo)
+			VAR SelStart = (FY - FirstFY) * 12
+			VAR Pts = CONCATENATEX(P, FORMAT(14 + 'Date'[Month Index] * 5.6, "0.0") & "," & FORMAT(112 - ([@v] - Lo) / Span * 24, "0.0"), " ", 'Date'[Month Index], ASC)
+			VAR PtsSel = CONCATENATEX(FILTER(P, 'Date'[Month Index] >= SelStart && 'Date'[Month Index] < SelStart + 12), FORMAT(14 + 'Date'[Month Index] * 5.6, "0.0") & "," & FORMAT(112 - ([@v] - Lo) / Span * 24, "0.0"), " ", 'Date'[Month Index], ASC)
+			VAR Svg =
+			    "<svg xmlns='http://www.w3.org/2000/svg' width='220' height='120' viewBox='0 0 220 120' font-family='Segoe UI, sans-serif'>"
+			        & "<rect x='0.5' y='0.5' width='219' height='119' rx='4' fill='#FFFFFF' stroke='#E3E7EF'/><rect width='3' height='120' fill='#C9A227'/>"
+			        & "<text x='14' y='22' font-size='11' font-weight='700' fill='#667284'>AVERAGE ORDER VALUE</text>"
+			        & "<text x='14' y='52' font-size='26' font-weight='700' fill='#0A0917'>" & FORMAT([Average Order Value], "$#,0") & "</text>"
+			        & "<text x='14' y='71' font-size='10.5'><tspan font-weight='700' fill='" & Col & "'>" & ChgTxt & "</tspan><tspan fill='#667284'>" & Tail & "</tspan></text>"
+			        & IF(NOT ISBLANK(FY), "<rect x='" & FORMAT(14 + SelStart * 5.6 - 2.8, "0.0") & "' y='84' width='67.2' height='30' fill='#F4F6FA'/>")
+			        & "<polyline points='" & Pts & "' fill='none' stroke='#BCC1D2' stroke-width='1.3'/>"
+			        & "<polyline points='" & PtsSel & "' fill='none' stroke='#111F38' stroke-width='2'/>"
+			        & "</svg>"
+			RETURN
+			    IF(NOT ISBLANK(FORMAT([Average Order Value], "$#,0")), "data:image/svg+xml;utf8," & SUBSTITUTE(SUBSTITUTE(Svg, "%", "%25"), "#", "%23"))
+		dataCategory: ImageUrl
+		displayFolder: Cards
+		lineageTag: 1ce4f223-8f91-5d2d-9c6a-0c2fccba9416
+
+	measure 'Card Customers' =
+			VAR FY = SELECTEDVALUE('Date'[FY Sort])
+			VAR FirstFY = CALCULATE(MIN(Sales[Account First FY]), REMOVEFILTERS())
+			VAR Chg = VAR P = [Customers PY] RETURN IF(NOT ISBLANK(P), DIVIDE([Customers] - P, P))
+			VAR Lbl = [Comparison Label]
+			VAR Col = IF(Chg >= 0, "#1E7A4C", "#B3261E")
+			VAR ChgTxt = IF(ISBLANK(Chg), "", IF(Chg >= 0, "&#9650; +", "&#9660; &#8722;") & FORMAT(ABS(Chg), "0.0%"))
+			VAR Tail = IF(ISBLANK(Chg), "No prior year to compare", " vs " & Lbl)
+			VAR T =
+			    ADDCOLUMNS(
+			        ALL('Date'[Month Index]),
+			        "@v", VAR i = 'Date'[Month Index] RETURN CALCULATE([Customers], REMOVEFILTERS('Date'), 'Date'[Month Index] = i)
+			    )
+			VAR P = FILTER(T, NOT ISBLANK([@v]))
+			VAR Lo = MIN(0, MINX(P, [@v]))
+			VAR Hi = MAXX(P, [@v])
+			VAR Span = IF(Hi = Lo, 1, Hi - Lo)
+			VAR SelStart = (FY - FirstFY) * 12
+			VAR Pts = CONCATENATEX(P, FORMAT(14 + 'Date'[Month Index] * 5.6, "0.0") & "," & FORMAT(112 - ([@v] - Lo) / Span * 24, "0.0"), " ", 'Date'[Month Index], ASC)
+			VAR PtsSel = CONCATENATEX(FILTER(P, 'Date'[Month Index] >= SelStart && 'Date'[Month Index] < SelStart + 12), FORMAT(14 + 'Date'[Month Index] * 5.6, "0.0") & "," & FORMAT(112 - ([@v] - Lo) / Span * 24, "0.0"), " ", 'Date'[Month Index], ASC)
+			VAR Svg =
+			    "<svg xmlns='http://www.w3.org/2000/svg' width='220' height='120' viewBox='0 0 220 120' font-family='Segoe UI, sans-serif'>"
+			        & "<rect x='0.5' y='0.5' width='219' height='119' rx='4' fill='#FFFFFF' stroke='#E3E7EF'/><rect width='3' height='120' fill='#C9A227'/>"
+			        & "<text x='14' y='22' font-size='11' font-weight='700' fill='#667284'>CUSTOMERS</text>"
+			        & "<text x='14' y='52' font-size='26' font-weight='700' fill='#0A0917'>" & FORMAT([Customers], "#,0") & "</text>"
+			        & "<text x='14' y='71' font-size='10.5'><tspan font-weight='700' fill='" & Col & "'>" & ChgTxt & "</tspan><tspan fill='#667284'>" & Tail & "</tspan></text>"
+			        & IF(NOT ISBLANK(FY), "<rect x='" & FORMAT(14 + SelStart * 5.6 - 2.8, "0.0") & "' y='84' width='67.2' height='30' fill='#F4F6FA'/>")
+			        & "<polyline points='" & Pts & "' fill='none' stroke='#BCC1D2' stroke-width='1.3'/>"
+			        & "<polyline points='" & PtsSel & "' fill='none' stroke='#111F38' stroke-width='2'/>"
+			        & "</svg>"
+			RETURN
+			    IF(NOT ISBLANK(FORMAT([Customers], "#,0")), "data:image/svg+xml;utf8," & SUBSTITUTE(SUBSTITUTE(Svg, "%", "%25"), "#", "%23"))
+		dataCategory: ImageUrl
+		displayFolder: Cards
+		lineageTag: ee1cdca7-506c-5ad3-82a8-5d5a669c5b01
+
+	measure 'Card Customers Total' =
+			VAR Note = VAR P = [Customers PY] VAR C = DIVIDE([Customers] - P, P) RETURN IF(ISBLANK(P), "No prior year to compare", IF(C >= 0, "Up ", "Down ") & FORMAT(ABS(C), "0.0%") & " on " & [Comparison Label])
+			VAR NoteCol = VAR P = [Customers PY] RETURN IF(ISBLANK(P), "#667284", IF([Customers] >= P, "#1E7A4C", "#B3261E"))
+			VAR Svg =
+			    "<svg xmlns='http://www.w3.org/2000/svg' width='336' height='96' viewBox='0 0 336 96' font-family='Segoe UI, sans-serif'>"
+			        & "<rect x='0.5' y='0.5' width='335' height='95' rx='4' fill='#FFFFFF' stroke='#E3E7EF'/><rect width='3' height='96' fill='#C9A227'/>"
+			        & "<text x='16' y='22' font-size='11' font-weight='700' fill='#667284'>CUSTOMERS</text>"
+			        & "<text x='16' y='56' font-size='28' font-weight='700' fill='#0A0917'>" & FORMAT([Customers], "#,0") & "</text>"
+			        & "<text x='16' y='81' font-size='11.5' fill='" & NoteCol & "'>" & Note & "</text>"
+			        & "</svg>"
+			RETURN
+			    "data:image/svg+xml;utf8," & SUBSTITUTE(SUBSTITUTE(Svg, "%", "%25"), "#", "%23")
+		dataCategory: ImageUrl
+		displayFolder: Cards
+		lineageTag: 462d269d-1255-5e3e-987c-8b83d8922133
+
+	measure 'Card New Customers' =
+			VAR Note = FORMAT([New Customer Share], "0.0%") & " of customers placed a first order"
+			VAR NoteCol = "#667284"
+			VAR Svg =
+			    "<svg xmlns='http://www.w3.org/2000/svg' width='336' height='96' viewBox='0 0 336 96' font-family='Segoe UI, sans-serif'>"
+			        & "<rect x='0.5' y='0.5' width='335' height='95' rx='4' fill='#FFFFFF' stroke='#E3E7EF'/><rect width='3' height='96' fill='#C9A227'/>"
+			        & "<text x='16' y='22' font-size='11' font-weight='700' fill='#667284'>NEW CUSTOMERS</text>"
+			        & "<text x='16' y='56' font-size='28' font-weight='700' fill='#0A0917'>" & FORMAT([New Customers], "#,0") & "</text>"
+			        & "<text x='16' y='81' font-size='11.5' fill='" & NoteCol & "'>" & Note & "</text>"
+			        & "</svg>"
+			RETURN
+			    "data:image/svg+xml;utf8," & SUBSTITUTE(SUBSTITUTE(Svg, "%", "%25"), "#", "%23")
+		dataCategory: ImageUrl
+		displayFolder: Cards
+		lineageTag: 66bb08d9-e583-53be-8963-ac867b448f48
+
+	measure 'Card Returning Customers' =
+			VAR Note = "First ordered in an earlier fiscal year"
+			VAR NoteCol = "#667284"
+			VAR Svg =
+			    "<svg xmlns='http://www.w3.org/2000/svg' width='336' height='96' viewBox='0 0 336 96' font-family='Segoe UI, sans-serif'>"
+			        & "<rect x='0.5' y='0.5' width='335' height='95' rx='4' fill='#FFFFFF' stroke='#E3E7EF'/><rect width='3' height='96' fill='#C9A227'/>"
+			        & "<text x='16' y='22' font-size='11' font-weight='700' fill='#667284'>RETURNING CUSTOMERS</text>"
+			        & "<text x='16' y='56' font-size='28' font-weight='700' fill='#0A0917'>" & FORMAT([Returning Customers], "#,0") & "</text>"
+			        & "<text x='16' y='81' font-size='11.5' fill='" & NoteCol & "'>" & Note & "</text>"
+			        & "</svg>"
+			RETURN
+			    "data:image/svg+xml;utf8," & SUBSTITUTE(SUBSTITUTE(Svg, "%", "%25"), "#", "%23")
+		dataCategory: ImageUrl
+		displayFolder: Cards
+		lineageTag: 4ecd8ee8-4858-595e-9f7f-24301589854f
+
+	measure 'Card Returning Sales' =
+			VAR Note = FORMAT([Returning Sales Share], "0.0%") & " of this year's sales"
+			VAR NoteCol = "#667284"
+			VAR Svg =
+			    "<svg xmlns='http://www.w3.org/2000/svg' width='336' height='96' viewBox='0 0 336 96' font-family='Segoe UI, sans-serif'>"
+			        & "<rect x='0.5' y='0.5' width='335' height='95' rx='4' fill='#FFFFFF' stroke='#E3E7EF'/><rect width='3' height='96' fill='#C9A227'/>"
+			        & "<text x='16' y='22' font-size='11' font-weight='700' fill='#667284'>SALES FROM RETURNING CUSTOMERS</text>"
+			        & "<text x='16' y='56' font-size='28' font-weight='700' fill='#0A0917'>" & IF(ABS([Sales from Returning Customers]) >= 1000000, FORMAT([Sales from Returning Customers] / 1000000, "$#,0.0") & "M", IF(ABS([Sales from Returning Customers]) >= 1000, FORMAT([Sales from Returning Customers] / 1000, "$#,0.0") & "K", FORMAT([Sales from Returning Customers], "$#,0"))) & "</text>"
+			        & "<text x='16' y='81' font-size='11.5' fill='" & NoteCol & "'>" & Note & "</text>"
+			        & "</svg>"
+			RETURN
+			    "data:image/svg+xml;utf8," & SUBSTITUTE(SUBSTITUTE(Svg, "%", "%25"), "#", "%23")
+		dataCategory: ImageUrl
+		displayFolder: Cards
+		lineageTag: 715f6926-ae28-5e2f-952f-a9573da873e5
+
+	measure 'Cell Season' =
+			VAR Me = [Sales]
+			VAR Mx = MAXX(CROSSJOIN(ALL('Date'[Fiscal Year], 'Date'[FY Sort]), ALL('Date'[Month], 'Date'[Month No])), CALCULATE([Sales]))
+			VAR R = DIVIDE(Me, Mx)
+			VAR Bg = SWITCH(TRUE(), R > 0.8, "#111F38", R > 0.6, "#3B4A66", R > 0.4, "#7C8598", R > 0.2, "#BCC1D2", "#E8ECF3")
+			VAR Fg = IF(R > 0.4, "#FFFFFF", "#4A5768")
+			VAR Svg =
+			    "<svg xmlns='http://www.w3.org/2000/svg' width='30' height='22' viewBox='0 0 30 22' font-family='Segoe UI, sans-serif'>"
+			        & "<rect x='1' y='1' width='28' height='20' rx='2' fill='" & Bg & "'/>"
+			        & "<text x='15' y='15' font-size='11' text-anchor='middle' fill='" & Fg & "'>" & FORMAT(Me / 1000000, "0.0") & "</text>"
+			        & "</svg>"
+			RETURN
+			    IF(NOT ISBLANK(Me), "data:image/svg+xml;utf8," & SUBSTITUTE(SUBSTITUTE(Svg, "%", "%25"), "#", "%23"))
+		dataCategory: ImageUrl
+		displayFolder: Formatting
+		lineageTag: 0438fe1b-eb2f-5529-80b2-e1d280e4f522
+
+	measure 'Cell Buyer' =
+			VAR Me = [Sales]
+			VAR Mx = MAXX(CROSSJOIN(ALL(Reseller[Buyer Type], Reseller[Buyer Type Sort]), ALL('Product'[Category], 'Product'[Category Sort])), CALCULATE([Sales]))
+			VAR R = DIVIDE(Me, Mx)
+			VAR Bg = SWITCH(TRUE(), R > 0.8, "#111F38", R > 0.6, "#3B4A66", R > 0.4, "#7C8598", R > 0.2, "#BCC1D2", "#E8ECF3")
+			VAR Fg = IF(R > 0.4, "#FFFFFF", "#4A5768")
+			VAR Svg =
+			    "<svg xmlns='http://www.w3.org/2000/svg' width='66' height='22' viewBox='0 0 66 22' font-family='Segoe UI, sans-serif'>"
+			        & "<rect x='1' y='1' width='64' height='20' rx='2' fill='" & Bg & "'/>"
+			        & "<text x='33' y='15' font-size='11' text-anchor='middle' fill='" & Fg & "'>" & IF(ABS(Me) >= 1000000, FORMAT(Me / 1000000, "$#,0.0") & "M", IF(ABS(Me) >= 1000, FORMAT(Me / 1000, "$#,0.0") & "K", FORMAT(Me, "$#,0"))) & "</text>"
+			        & "</svg>"
+			RETURN
+			    IF(NOT ISBLANK(Me), "data:image/svg+xml;utf8," & SUBSTITUTE(SUBSTITUTE(Svg, "%", "%25"), "#", "%23"))
+		dataCategory: ImageUrl
+		displayFolder: Formatting
+		lineageTag: 03f00afd-2fa5-541a-9286-8b1127d6d79d
+
+	measure 'Cell Region' =
+			VAR Me = [Sales]
+			VAR Mx = MAXX(CROSSJOIN(ALL(Territory[Region]), ALL('Product'[Category], 'Product'[Category Sort])), CALCULATE([Sales]))
+			VAR R = DIVIDE(Me, Mx)
+			VAR Bg = SWITCH(TRUE(), R > 0.8, "#111F38", R > 0.6, "#3B4A66", R > 0.4, "#7C8598", R > 0.2, "#BCC1D2", "#E8ECF3")
+			VAR Fg = IF(R > 0.4, "#FFFFFF", "#4A5768")
+			VAR Svg =
+			    "<svg xmlns='http://www.w3.org/2000/svg' width='110' height='18' viewBox='0 0 110 18' font-family='Segoe UI, sans-serif'>"
+			        & "<rect x='1' y='1' width='108' height='16' rx='2' fill='" & Bg & "'/>"
+			        & "<text x='55' y='13' font-size='11' text-anchor='middle' fill='" & Fg & "'>" & IF(ABS(Me) >= 1000000, FORMAT(Me / 1000000, "$#,0.0") & "M", IF(ABS(Me) >= 1000, FORMAT(Me / 1000, "$#,0.0") & "K", FORMAT(Me, "$#,0"))) & "</text>"
+			        & "</svg>"
+			RETURN
+			    IF(NOT ISBLANK(Me), "data:image/svg+xml;utf8," & SUBSTITUTE(SUBSTITUTE(Svg, "%", "%25"), "#", "%23"))
+		dataCategory: ImageUrl
+		displayFolder: Formatting
+		lineageTag: 024f766f-455d-5d71-81a5-36552e9003cb
+
+	/// Pooled with ALL: the table's Top 10 filter would narrow ALLSELECTED to the rows kept.
+	measure 'Bar Product Sales' =
+			VAR V = [Sales]
+			VAR Mx = MAXX(ALL('Product'[Product]), [Sales])
+			VAR W = DIVIDE(V, Mx) * 116
+			VAR Svg =
+			    "<svg xmlns='http://www.w3.org/2000/svg' width='120' height='16' viewBox='0 0 120 16'>"
+			        & "<rect x='0' y='3' width='" & FORMAT(MAX(W, 1), "0.0") & "' height='10' rx='1' fill='#111F38'/></svg>"
+			RETURN
+			    IF(V > 0, "data:image/svg+xml;utf8," & SUBSTITUTE(SUBSTITUTE(Svg, "%", "%25"), "#", "%23"))
+		dataCategory: ImageUrl
+		displayFolder: Formatting
+		lineageTag: f320672e-0408-57b8-9f69-435f6ef1c79d
+
+	measure 'Bar Subcategory Sales' =
+			VAR V = [Sales]
+			VAR Mx = MAXX(ALLSELECTED('Product'[Subcategory]), [Sales])
+			VAR W = DIVIDE(V, Mx) * 116
+			VAR Svg =
+			    "<svg xmlns='http://www.w3.org/2000/svg' width='120' height='16' viewBox='0 0 120 16'>"
+			        & "<rect x='0' y='3' width='" & FORMAT(MAX(W, 1), "0.0") & "' height='10' rx='1' fill='#111F38'/></svg>"
+			RETURN
+			    IF(V > 0, "data:image/svg+xml;utf8," & SUBSTITUTE(SUBSTITUTE(Svg, "%", "%25"), "#", "%23"))
+		dataCategory: ImageUrl
+		displayFolder: Formatting
+		lineageTag: f1aafbf8-ff48-58bf-8ff0-6522098d95c1
+
+	measure 'Bar Region Sales' =
+			VAR V = [Sales]
+			VAR Mx = MAXX(ALLSELECTED(Territory[Region]), [Sales])
+			VAR W = DIVIDE(V, Mx) * 116
+			VAR Svg =
+			    "<svg xmlns='http://www.w3.org/2000/svg' width='120' height='16' viewBox='0 0 120 16'>"
+			        & "<rect x='0' y='3' width='" & FORMAT(MAX(W, 1), "0.0") & "' height='10' rx='1' fill='#111F38'/></svg>"
+			RETURN
+			    IF(V > 0, "data:image/svg+xml;utf8," & SUBSTITUTE(SUBSTITUTE(Svg, "%", "%25"), "#", "%23"))
+		dataCategory: ImageUrl
+		displayFolder: Formatting
+		lineageTag: c433ce71-2648-5b5b-bf26-dbac980f51ba
+
+	measure 'Bar Discount' =
+			VAR V = [Discount]
+			VAR Mx = MAXX(ALLSELECTED('Line Size'[Line Size]), [Discount])
+			VAR W = DIVIDE(V, Mx) * 116
+			VAR Svg =
+			    "<svg xmlns='http://www.w3.org/2000/svg' width='120' height='16' viewBox='0 0 120 16'>"
+			        & "<rect x='0' y='3' width='" & FORMAT(MAX(W, 1), "0.0") & "' height='10' rx='1' fill='#C9A227'/></svg>"
+			RETURN
+			    IF(V > 0, "data:image/svg+xml;utf8," & SUBSTITUTE(SUBSTITUTE(Svg, "%", "%25"), "#", "%23"))
+		dataCategory: ImageUrl
+		displayFolder: Formatting
+		lineageTag: 9587f074-f1e7-5bb2-bda3-be60f9353247
+
+	measure 'Model Profit Colour' = IF([Gross Profit] < 0, "#7C8598", "#111F38")
+		displayFolder: Formatting
+		lineageTag: bd18d6e7-6920-55d1-b8ad-91aee4837c49
+
+	measure 'Product Rank' =
+			VAR Me = [Sales]
+			VAR Mine = SELECTEDVALUE('Product'[Product])
+			VAR Pool = FILTER(ALL('Product'[Product]), [Sales] > 0)
+			RETURN
+			    IF(
+			        HASONEVALUE('Product'[Product]) && [Sales] > 0,
+			        COUNTROWS(FILTER(Pool, [Sales] > Me))
+			            + COUNTROWS(FILTER(Pool, [Sales] = Me && 'Product'[Product] < Mine)) + 1
+			    )
+		formatString: 0
+		displayFolder: Ranks
+		lineageTag: 60f6404c-64f2-5a67-b57b-e37c4555da8a
+
+	measure 'Subcategory Rank' =
+			VAR Me = [Sales]
+			VAR Mine = SELECTEDVALUE('Product'[Subcategory])
+			VAR Pool = FILTER(ALL('Product'[Subcategory]), [Sales] > 0)
+			RETURN
+			    IF(
+			        HASONEVALUE('Product'[Subcategory]) && [Sales] > 0,
+			        COUNTROWS(FILTER(Pool, [Sales] > Me))
+			            + COUNTROWS(FILTER(Pool, [Sales] = Me && 'Product'[Subcategory] < Mine)) + 1
+			    )
+		formatString: 0
+		displayFolder: Ranks
+		lineageTag: d482a527-c5ce-599d-8bb8-aabe2dc5c06d
+
+	measure 'Reseller Rank' =
+			VAR Me = [Sales]
+			VAR Mine = SELECTEDVALUE(Reseller[Reseller])
+			VAR Pool = FILTER(ALL(Reseller[Reseller]), [Sales] > 0 && Reseller[Reseller] <> "(Internet sale)")
+			RETURN
+			    IF(
+			        HASONEVALUE(Reseller[Reseller]) && [Sales] > 0 && Mine <> "(Internet sale)",
+			        COUNTROWS(FILTER(Pool, [Sales] > Me))
+			            + COUNTROWS(FILTER(Pool, [Sales] = Me && Reseller[Reseller] < Mine)) + 1
+			    )
+		formatString: 0
+		displayFolder: Ranks
+		lineageTag: e9aefef1-f48b-5f79-8f41-7e7df73ff550
+
+	measure 'Model Profit Rank' =
+			VAR Me = [Gross Profit]
+			VAR Mine = SELECTEDVALUE('Product'[Model])
+			VAR Pool = FILTER(ALL('Product'[Model]), NOT ISBLANK([Sales]))
+			RETURN
+			    IF(
+			        HASONEVALUE('Product'[Model]) && NOT ISBLANK([Sales]),
+			        COUNTROWS(FILTER(Pool, [Gross Profit] > Me))
+			            + COUNTROWS(FILTER(Pool, [Gross Profit] = Me && 'Product'[Model] < Mine)) + 1
+			    )
+		formatString: 0
+		displayFolder: Ranks
+		lineageTag: 6a453d6b-84d2-5fd7-ab52-d3545d27954c
+
+	measure 'Model Loss Rank' =
+			VAR Me = [Gross Profit]
+			VAR Mine = SELECTEDVALUE('Product'[Model])
+			VAR Pool = FILTER(ALL('Product'[Model]), NOT ISBLANK([Sales]))
+			RETURN
+			    IF(
+			        HASONEVALUE('Product'[Model]) && NOT ISBLANK([Sales]),
+			        COUNTROWS(FILTER(Pool, [Gross Profit] < Me))
+			            + COUNTROWS(FILTER(Pool, [Gross Profit] = Me && 'Product'[Model] < Mine)) + 1
+			    )
+		formatString: 0
+		displayFolder: Ranks
+		lineageTag: 9abbd6b6-7116-5b46-a4e3-bd945b26dc7e
+
+	/// 1 for the 7 most and 3 least profitable models: the chart filters on it. The sales test
+	/// matters: a model with no sales has a blank rank, and BLANK <= 12 is true.
+	measure 'Model Shown' = IF(NOT ISBLANK([Sales]) && ([Model Profit Rank] <= 7 || [Model Loss Rank] <= 3), 1)
+		formatString: 0
+		displayFolder: Ranks
+		lineageTag: a62dc71e-fe57-5d59-bfc0-d9b025133dc6
+
+	column Placeholder
+		dataType: string
+		isHidden
+		lineageTag: fdc3200e-3408-5e4e-99bd-b301a4c395c3
+		summarizeBy: none
+		sourceColumn: [Placeholder]
+
+	partition Metrics = calculated
+		mode: import
+		source = ROW("Placeholder", "")

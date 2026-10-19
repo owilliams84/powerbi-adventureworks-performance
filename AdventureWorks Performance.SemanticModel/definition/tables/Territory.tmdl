@@ -1,0 +1,51 @@
+/// Eleven sales territories in three groups. Corporate HQ has no sales.
+table Territory
+	lineageTag: e1a8bcde-0c8d-5d7f-bcc3-10b5fede715e
+
+	column 'Territory Key'
+		dataType: int64
+		isHidden
+		isKey
+		formatString: 0
+		lineageTag: 40b541ce-1722-5cda-97e0-3fd1eb0f89a0
+		summarizeBy: none
+		sourceColumn: SalesTerritoryKey
+
+	column Region
+		dataType: string
+		lineageTag: 485613ed-085e-5628-ad32-0474f4814c6e
+		summarizeBy: none
+		sourceColumn: Region
+
+	column Country
+		dataType: string
+		lineageTag: 165f61c2-652c-55c5-8775-96a9fb714161
+		summarizeBy: none
+		sourceColumn: Country
+
+	column Group
+		dataType: string
+		lineageTag: 5eb12cce-3719-58cc-8dd3-079ead4b0550
+		summarizeBy: none
+		sourceColumn: TerritoryGroup
+		sortByColumn: 'Group Sort'
+
+	column 'Group Sort'
+		dataType: int64
+		isHidden
+		formatString: 0
+		lineageTag: e69012f2-076f-5e7e-8b1a-a909e5c21169
+		summarizeBy: none
+		sourceColumn: GroupSort
+
+	partition Territory = m
+		mode: import
+		source =
+				let
+				    Source = Csv.Document(Web.Contents("https://raw.githubusercontent.com/owilliams84/powerbi-adventureworks-performance/main/data/dim_territory.csv"), [Delimiter=",", Columns=5, Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+				    #"Promoted Headers" = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+				    #"Applied Types" = Table.TransformColumnTypes(#"Promoted Headers", {{"SalesTerritoryKey", Int64.Type}, {"Region", type text}, {"Country", type text}, {"TerritoryGroup", type text}, {"GroupSort", Int64.Type}}, "en-US")
+				in
+				    #"Applied Types"
+
+	annotation PBI_ResultType = Table

@@ -1,0 +1,32 @@
+/// Order-line quantity bands. AdventureWorks' reseller volume discounts start at 11, 15,
+/// 25 and 41 units, so the bands follow those steps.
+table 'Line Size'
+	lineageTag: 2dd1eb54-f3a3-53f1-9084-73e01ac332bd
+
+	column 'Line Size Key'
+		dataType: int64
+		isHidden
+		isKey
+		formatString: 0
+		lineageTag: c025ecbf-8100-54df-97f1-ac22b90ceb02
+		summarizeBy: none
+		sourceColumn: LineSizeKey
+
+	column 'Line Size'
+		dataType: string
+		lineageTag: 37f96a6a-d3fd-54ce-8134-2cd7454b4540
+		summarizeBy: none
+		sourceColumn: LineSize
+		sortByColumn: 'Line Size Key'
+
+	partition 'Line Size' = m
+		mode: import
+		source =
+				let
+				    Source = Csv.Document(Web.Contents("https://raw.githubusercontent.com/owilliams84/powerbi-adventureworks-performance/main/data/dim_line_size.csv"), [Delimiter=",", Columns=2, Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+				    #"Promoted Headers" = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+				    #"Applied Types" = Table.TransformColumnTypes(#"Promoted Headers", {{"LineSizeKey", Int64.Type}, {"LineSize", type text}}, "en-US")
+				in
+				    #"Applied Types"
+
+	annotation PBI_ResultType = Table

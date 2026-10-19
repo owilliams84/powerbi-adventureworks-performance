@@ -1,0 +1,31 @@
+relationship 'Date to Sales'
+	fromColumn: Sales.'Order Date'
+	toColumn: Date.Date
+
+relationship 'Product to Sales'
+	fromColumn: Sales.'Product Key'
+	toColumn: Product.'Product Key'
+
+relationship 'Territory to Sales'
+	fromColumn: Sales.'Territory Key'
+	toColumn: Territory.'Territory Key'
+
+relationship 'Reseller to Sales'
+	fromColumn: Sales.'Reseller Key'
+	toColumn: Reseller.'Reseller Key'
+
+relationship 'Customer to Sales'
+	fromColumn: Sales.'Customer Key'
+	toColumn: Customer.'Customer Key'
+
+relationship 'Channel to Sales'
+	fromColumn: Sales.'Channel Key'
+	toColumn: Channel.'Channel Key'
+
+relationship 'Line Size to Sales'
+	fromColumn: Sales.'Line Size Key'
+	toColumn: 'Line Size'.'Line Size Key'
+
+relationship 'Sales Order to Sales'
+	fromColumn: Sales.'Order ID'
+	toColumn: 'Sales Order'.'Order ID'

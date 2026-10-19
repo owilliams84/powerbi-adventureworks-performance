@@ -1,0 +1,70 @@
+/// 701 resellers, plus key -1 for internet sales. 'Buyer Type' names that row 'Internet'
+/// so one column splits every sale by who bought it.
+table Reseller
+	lineageTag: 0de82b52-02c6-58de-b34a-18999634d9e4
+
+	column 'Reseller Key'
+		dataType: int64
+		isHidden
+		isKey
+		formatString: 0
+		lineageTag: 92083d15-823c-5fe0-8fa8-6f4248862e39
+		summarizeBy: none
+		sourceColumn: ResellerKey
+
+	column Reseller
+		dataType: string
+		lineageTag: 1e0a7dd2-a558-56f0-8996-92c9176816c0
+		summarizeBy: none
+		sourceColumn: Reseller
+
+	column 'Business Type'
+		dataType: string
+		lineageTag: b8a28153-6c5d-520c-9d09-e0280248fbde
+		summarizeBy: none
+		sourceColumn: BusinessType
+
+	column 'Buyer Type'
+		dataType: string
+		lineageTag: 5564acca-fd30-52db-8430-5d5f61748d7d
+		summarizeBy: none
+		sourceColumn: BuyerType
+		sortByColumn: 'Buyer Type Sort'
+
+	column 'Buyer Type Sort'
+		dataType: int64
+		isHidden
+		formatString: 0
+		lineageTag: a944c14a-cbd6-57c5-a6ff-9491334ae029
+		summarizeBy: none
+		sourceColumn: BuyerTypeSort
+
+	column City
+		dataType: string
+		lineageTag: 62556be0-bcc9-58e6-a112-b76a8346b36c
+		summarizeBy: none
+		sourceColumn: City
+
+	column State
+		dataType: string
+		lineageTag: 369e99db-1954-541e-83ab-337aa15dfbb5
+		summarizeBy: none
+		sourceColumn: State
+
+	column Country
+		dataType: string
+		lineageTag: baabc0f4-3103-59dc-afeb-4316bfdd4582
+		summarizeBy: none
+		sourceColumn: Country
+
+	partition Reseller = m
+		mode: import
+		source =
+				let
+				    Source = Csv.Document(Web.Contents("https://raw.githubusercontent.com/owilliams84/powerbi-adventureworks-performance/main/data/dim_reseller.csv"), [Delimiter=",", Columns=8, Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+				    #"Promoted Headers" = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+				    #"Applied Types" = Table.TransformColumnTypes(#"Promoted Headers", {{"ResellerKey", Int64.Type}, {"Reseller", type text}, {"BusinessType", type text}, {"BuyerType", type text}, {"BuyerTypeSort", Int64.Type}, {"City", type text}, {"State", type text}, {"Country", type text}}, "en-US")
+				in
+				    #"Applied Types"
+
+	annotation PBI_ResultType = Table

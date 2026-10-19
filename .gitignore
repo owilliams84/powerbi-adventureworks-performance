@@ -1,0 +1,7 @@
+# Power BI Desktop local state
+**/.pbi/localSettings.json
+**/.pbi/cache.abf
+# Python
+__pycache__/
+# Uncropped window captures; the cropped page images are committed
+screenshots/raw_*.png
