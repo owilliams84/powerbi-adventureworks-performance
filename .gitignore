@@ -5,3 +5,4 @@
 __pycache__/
 # Uncropped window captures; the cropped page images are committed
 screenshots/raw_*.png
+etl/.service.json

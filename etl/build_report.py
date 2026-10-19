@@ -152,6 +152,7 @@ def channel_slicer(name: str, z: int) -> dict:
     objects = node["visual"]["objects"]
     del objects["general"]
     objects["selection"] = [{"properties": {"strictSingleSelect": lit(False), "selectAllCheckboxEnabled": lit(False)}}]
+    node["visual"]["syncGroup"] = {"groupName": "Channel", "fieldChanges": True, "filterChanges": True}
     return node
 
 

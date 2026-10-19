@@ -1,6 +1,7 @@
 """Cross-check the model against pandas: the same breakdowns the pages show, computed both ways.
 
-    python etl/compare.py          (Power BI Desktop must have the project open and refreshed)
+    python etl/compare.py            (Power BI Desktop must have the project open and refreshed)
+    python etl/compare.py --service  (the published dataset, via executeQueries)
 
 Each check runs one DAX query over the open model (etl/run_dax.ps1) with the slicers pinned by
 TREATAS, recomputes it from data/*.csv, and compares every cell. Prints a line per check and the
@@ -42,7 +43,32 @@ def scope(fy: int, channel: str | None = None, prior: bool = False) -> pd.DataFr
     return x[x.FYSort == fy]
 
 
+SERVICE = "--service" in sys.argv[1:]   # query the published dataset instead of Desktop
+
+
+def dax_service(query: str) -> list:
+    """executeQueries on the dataset publish_to_service.py recorded in etl/.service.json."""
+    import urllib.request
+    svc = json.loads((ROOT / "etl" / ".service.json").read_text(encoding="utf-8"))
+    tok = subprocess.run('az account get-access-token --resource "https://analysis.windows.net/powerbi/api" '
+                         '--query accessToken -o tsv', shell=True, check=True, capture_output=True, text=True).stdout.strip()
+    base = "https://api.powerbi.com/v1.0/myorg" + ("" if svc["personal"] else f"/groups/{svc['workspace']}")
+    req = urllib.request.Request(f"{base}/datasets/{svc['model']}/executeQueries", method="POST",
+                                 data=json.dumps({"queries": [{"query": query}]}).encode(),
+                                 headers={"Authorization": f"Bearer {tok}", "Content-Type": "application/json"})
+    with urllib.request.urlopen(req) as r:
+        out = json.loads(r.read())
+    res = out["results"][0]
+    if "error" in res:
+        raise RuntimeError(res["error"])
+    return res["tables"][0]["rows"]
+
+
 def dax(query: str) -> pd.DataFrame:
+    if SERVICE:
+        df = pd.DataFrame(dax_service(query))
+        df.columns = [c.split("[")[-1].rstrip("]") for c in df.columns]
+        return df
     with tempfile.TemporaryDirectory() as tmp:
         qf, of = Path(tmp) / "q.dax", Path(tmp) / "out.json"
         qf.write_text(query, encoding="utf-8")
@@ -67,6 +93,10 @@ FAILS = 0
 
 def check(label: str, got: pd.DataFrame, want: pd.DataFrame, key: list[str], tol: float = 0.01) -> None:
     global FAILS
+    got = got.copy()
+    for c in want.columns:          # executeQueries drops a column that is blank on every row
+        if c not in got.columns:
+            got[c] = None
     m = want.merge(got, on=key, how="outer", suffixes=("_pd", "_dax"), indicator=True)
     bad = []
     for c in [c for c in want.columns if c not in key]:

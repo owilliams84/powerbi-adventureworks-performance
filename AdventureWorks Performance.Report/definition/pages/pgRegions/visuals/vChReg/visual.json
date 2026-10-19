@@ -475,6 +475,11 @@
           }
         }
       ]
+    },
+    "syncGroup": {
+      "groupName": "Channel",
+      "fieldChanges": true,
+      "filterChanges": true
     }
   }
 }

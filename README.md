@@ -27,6 +27,13 @@ powershell -ExecutionPolicy Bypass -File etl\cycle.ps1             # model + rep
 (DAX against pandas, three year/channel states, every breakdown the pages show) and captures each
 page to `screenshots\`.
 
+To publish to a workspace (My workspace by default) and refresh there, with the Azure CLI signed in:
+
+```powershell
+python etl\publish_to_service.py
+python etl\compare.py --service      # the same cross-check against the published dataset
+```
+
 `prepare_data.py` takes the path to `AdventureWorks Sales.xlsx`, downloaded from the link below; it is not
 kept in this repository, only the CSVs shaped from it.
 
