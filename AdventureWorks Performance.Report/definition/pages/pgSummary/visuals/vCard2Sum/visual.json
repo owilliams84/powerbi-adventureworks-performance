@@ -2,7 +2,7 @@
   "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.5.0/schema.json",
   "name": "vCard2Sum",
   "position": {
-    "x": 258,
+    "x": 434,
     "y": 176,
     "z": 501,
     "width": 220,

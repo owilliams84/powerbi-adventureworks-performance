@@ -2,7 +2,7 @@
   "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.5.0/schema.json",
   "name": "vMonthlyRD",
   "position": {
-    "x": 24,
+    "x": 200,
     "y": 312,
     "z": 600,
     "width": 776,

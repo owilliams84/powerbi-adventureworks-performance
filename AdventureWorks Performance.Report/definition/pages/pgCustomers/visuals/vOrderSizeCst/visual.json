@@ -2,7 +2,7 @@
   "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.5.0/schema.json",
   "name": "vOrderSizeCst",
   "position": {
-    "x": 560,
+    "x": 736,
     "y": 612,
     "z": 630,
     "width": 400,

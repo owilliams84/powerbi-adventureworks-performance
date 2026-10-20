@@ -2,7 +2,7 @@
   "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.5.0/schema.json",
   "name": "vTopRD",
   "position": {
-    "x": 24,
+    "x": 200,
     "y": 612,
     "z": 620,
     "width": 452,

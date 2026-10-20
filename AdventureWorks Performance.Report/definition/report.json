@@ -62,6 +62,31 @@
           "name": "MilestoneMark.svg",
           "path": "MilestoneMark.svg",
           "type": "Image"
+        },
+        {
+          "name": "RailActive.svg",
+          "path": "RailActive.svg",
+          "type": "Image"
+        },
+        {
+          "name": "IconBars.svg",
+          "path": "IconBars.svg",
+          "type": "Image"
+        },
+        {
+          "name": "IconGlobe.svg",
+          "path": "IconGlobe.svg",
+          "type": "Image"
+        },
+        {
+          "name": "IconPeople.svg",
+          "path": "IconPeople.svg",
+          "type": "Image"
+        },
+        {
+          "name": "IconTag.svg",
+          "path": "IconTag.svg",
+          "type": "Image"
         }
       ]
     },

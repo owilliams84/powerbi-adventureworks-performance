@@ -19,6 +19,7 @@ import sys
 import time
 from pathlib import Path
 
+import milestone_icons
 import milestone_pbir as mb
 from milestone_pbir import (BODY, CARD, GOLD, INK, LIGHT, MUTED, NAVY, RULE, SLATE, colour, column, lit, obj)
 
@@ -652,6 +653,82 @@ def rmtree_retry(path: Path) -> None:
             time.sleep(0.4)
 
 
+# --------------------------------------------------------------------------------------------
+# Navigation rail
+# --------------------------------------------------------------------------------------------
+
+RAIL_W = 176                       # every page widens by this and its content moves right
+PAGE_W = mb.CANVAS_W + RAIL_W
+RAIL_BG, RAIL_ACTIVE, RAIL_HOVER, RAIL_TEXT = NAVY, "#22355A", "#2C416B", "#C9CFDC"
+RAIL_PAGES = [("pgSummary", "Executive summary", "bars"), ("pgProducts", "Products & margin", "tag"),
+              ("pgCustomers", "Customers & channels", "people"), ("pgRegions", "Regions & discounts", "globe")]
+RAIL_TILE = "RailActive.svg"
+RAIL_Y0, RAIL_STEP, RAIL_H = 100, 52, 44
+
+
+def rail_resources() -> dict[str, str]:
+    """Registered SVGs for the rail: the lit tile and each page's icon in light lines + gold."""
+    out = {RAIL_TILE: (f"<svg xmlns='http://www.w3.org/2000/svg' width='{RAIL_W}' height='{RAIL_H}' "
+                       f"viewBox='0 0 {RAIL_W} {RAIL_H}'><rect width='{RAIL_W}' height='{RAIL_H}' "
+                       f"fill='{RAIL_ACTIVE}'/><rect width='4' height='{RAIL_H}' fill='{GOLD}'/></svg>\n")}
+    out.update(milestone_icons.resources([i for _, _, i in RAIL_PAGES], stroke="#E8ECF3", accent=GOLD))
+    return out
+
+
+def rail_button(name: str, y: int, label: str, target: str, active: bool) -> dict:
+    """A full-width transparent button over the row. The icon and the lit tile are images
+    underneath it: an image on top would take the click and go nowhere. Hover is a
+    see-through fill so the icon still shows through it."""
+    def dual(props, hover=None):
+        out = [{"properties": props}, {"properties": props, "selector": {"id": "default"}}]
+        if hover:
+            out.append({"properties": hover, "selector": {"id": "hover"}})
+        return out
+    objects = {
+        "shape": [{"properties": {"tileShape": lit("rectangle")}}],
+        "fill": dual({"show": lit(True), "fillColor": colour(RAIL_BG), "transparency": lit(100.0)},
+                     {"show": lit(True), "fillColor": colour(RAIL_HOVER), "transparency": lit(55.0)}),
+        "outline": dual({"show": lit(False)}),
+        "icon": dual({"show": lit(False)}),
+        "text": dual({"show": lit(True), "text": lit(label), "fontColor": colour(CARD if active else RAIL_TEXT),
+                      "fontSize": lit(9.5), "bold": lit(active), "horizontalAlignment": lit("left"),
+                      "leftMargin": lit(46)}),
+    }
+    container = mb.no_chrome()
+    container["visualLink"] = obj(show=lit(True), type=lit("PageNavigation"), navigationSection=lit(target))
+    container["visualHeader"] = obj(show=lit(False))
+    node = mb.visual(name, "actionButton", 0, y, RAIL_W, RAIL_H, 70, container=container)
+    node["visual"]["objects"] = objects
+    node["howCreated"] = "InsertVisualButton"
+    return node
+
+
+def add_rail(pg: dict, visuals: list[dict]) -> None:
+    """Widen the page, move its content right of the rail, and draw the rail with this page's
+    row lit (none on the drill-through pages). The brand band stays full width across the top,
+    which is also what crop_screenshots.py finds the canvas by."""
+    slug = pg["name"][2:]
+    pg["width"] = PAGE_W
+    for v in visuals:
+        n = v["name"]
+        if n.startswith("vBand"):
+            v["position"]["width"] = PAGE_W
+        elif not (n.startswith("vMark") or n.startswith("vWordmark")):
+            v["position"]["x"] += RAIL_W
+    visuals.append(mb.textbox(f"vRail{slug}", 0, 60, RAIL_W, mb.CANVAS_H - 60, 40,
+                              [[{"text": "", "size": 6, "color": RAIL_BG}]], background=RAIL_BG))
+    visuals.append(mb.textbox(f"vRailHead{slug}", 16, 70, RAIL_W - 24, 24, 41, [[
+        {"text": "REPORT PAGES", "size": 7.5, "color": RAIL_TEXT, "bold": True, "spacing": "1.5px"}]]))
+    for i, (target, label, icon) in enumerate(RAIL_PAGES):
+        y, active = RAIL_Y0 + i * RAIL_STEP, target == pg["name"]
+        key = f"{slug}{i}"
+        if active:
+            visuals.append(mb.mark(f"vRailLit{key}", 0, y, RAIL_W, RAIL_H, 50, RAIL_TILE))
+            visuals[-1]["visual"]["objects"]["imageScaling"] = obj(imageScalingType=lit("Fill"))
+        visuals.append(mb.mark(f"vRailIcon{key}", 16, y + 10, 24, 24, 60, milestone_icons.resource_name(icon)))
+        visuals.append(rail_button(f"vRailNav{key}", y, label, target, active))
+
+
 def main() -> None:
     rmtree_retry(PAGES)
     order, total = [], 0
@@ -659,6 +736,8 @@ def main() -> None:
     for build in (page_summary, page_products, page_customers, page_regions, page_product_detail,
                   page_region_detail, page_tooltip):
         pg, visuals = build()
+        if pg["name"] != TIP_PAGE:
+            add_rail(pg, visuals)
         cross_filter_all(pg, visuals)
         names = set()
         for node in visuals:
@@ -689,7 +768,8 @@ def main() -> None:
         "resourcePackages": [
             {"name": "RegisteredResources", "type": "RegisteredResources",
              "items": [{"name": THEME_NAME, "path": THEME_NAME, "type": "CustomTheme"},
-                       {"name": mb.MARK_FILE, "path": mb.MARK_FILE, "type": "Image"}]},
+                       {"name": mb.MARK_FILE, "path": mb.MARK_FILE, "type": "Image"}]
+                      + [{"name": n, "path": n, "type": "Image"} for n in rail_resources()]},
             {"name": "SharedResources", "type": "SharedResources",
              "items": [{"name": BASE_THEME, "path": f"BaseThemes/{BASE_THEME}.json", "type": "BaseTheme"}]},
         ],
@@ -697,6 +777,8 @@ def main() -> None:
     })
     write_json(RESOURCES / THEME_NAME, theme())
     shutil.copyfile(ASSETS / "milestone-mark.svg", RESOURCES / mb.MARK_FILE)
+    for n, text in rail_resources().items():
+        (RESOURCES / n).write_text(text, encoding="utf-8", newline="\n")
     SHARED.mkdir(parents=True, exist_ok=True)
     shutil.copyfile(ASSETS / f"{BASE_THEME}.json", SHARED / f"{BASE_THEME}.json")
 

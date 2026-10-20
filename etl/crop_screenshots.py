@@ -3,7 +3,7 @@
 `powerbi-desktop screenshot` returns the whole Desktop window - ribbon, filter pane and all.
 Every page here opens with the navy brand band across the full canvas width, which makes the
 canvas easy to find: the first row with a long run of band-coloured pixels is the top edge, the
-run's extent is the width, and the height follows from the 1440 x 900 canvas.
+run's extent is the width, and the height follows from the 1616 x 900 canvas (1440 plus the 176px navigation rail).
 
     python etl/crop_screenshots.py [--site <path to assets/work/superstore-sales.png>]
 
@@ -30,7 +30,7 @@ GOLD = (195, 163, 66)
 SHAPE = {"pgTipTrend": (GOLD, 240 / 320, 0.15)}
 
 
-def find_canvas(im: Image.Image, band=BAND, aspect: float = 900 / 1440,
+def find_canvas(im: Image.Image, band=BAND, aspect: float = 900 / 1616,
                 min_share: float = 0.6) -> tuple[int, int, int, int]:
     px = im.load()
     w, h = im.size

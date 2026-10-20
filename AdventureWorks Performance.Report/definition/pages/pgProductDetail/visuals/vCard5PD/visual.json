@@ -2,7 +2,7 @@
   "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.5.0/schema.json",
   "name": "vCard5PD",
   "position": {
-    "x": 961,
+    "x": 1137,
     "y": 176,
     "z": 504,
     "width": 220,
