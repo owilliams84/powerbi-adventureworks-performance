@@ -43,5 +43,107 @@
         }
       }
     ]
-  }
+  },
+  "visualInteractions": [
+    {
+      "source": "vScatterPrd",
+      "target": "vTopProductsPrd",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vScatterPrd",
+      "target": "vMarginPrd",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vScatterPrd",
+      "target": "vModelsPrd",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vScatterPrd",
+      "target": "vSubcatsPrd",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vTopProductsPrd",
+      "target": "vScatterPrd",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vTopProductsPrd",
+      "target": "vMarginPrd",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vTopProductsPrd",
+      "target": "vModelsPrd",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vTopProductsPrd",
+      "target": "vSubcatsPrd",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vMarginPrd",
+      "target": "vScatterPrd",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vMarginPrd",
+      "target": "vTopProductsPrd",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vMarginPrd",
+      "target": "vModelsPrd",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vMarginPrd",
+      "target": "vSubcatsPrd",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vModelsPrd",
+      "target": "vScatterPrd",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vModelsPrd",
+      "target": "vTopProductsPrd",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vModelsPrd",
+      "target": "vMarginPrd",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vModelsPrd",
+      "target": "vSubcatsPrd",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vSubcatsPrd",
+      "target": "vScatterPrd",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vSubcatsPrd",
+      "target": "vTopProductsPrd",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vSubcatsPrd",
+      "target": "vMarginPrd",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vSubcatsPrd",
+      "target": "vModelsPrd",
+      "type": "DataFilter"
+    }
+  ]
 }

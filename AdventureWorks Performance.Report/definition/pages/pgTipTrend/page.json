@@ -50,5 +50,6 @@
     "name": "PodTipTrend",
     "type": "Tooltip",
     "parameters": []
-  }
+  },
+  "visualInteractions": []
 }

@@ -175,6 +175,18 @@ def no_filter(source: str, targets: list[str]) -> list[dict]:
     return [{"source": source, "target": t, "type": "NoFilter"} for t in targets]
 
 
+def cross_filter_all(pg: dict, visuals: list[dict]) -> None:
+    """Every chart and table filters every other one on its page, instead of the default
+    cross-highlight that leaves the rest of each visual drawn faded behind the selection.
+    Interactions already set for a pair (the slicers' NoFilter exclusions) are kept."""
+    data = [v["name"] for v in visuals
+            if "query" in v["visual"] and v["visual"]["visualType"] not in ("advancedSlicerVisual", "slicer")]
+    have = {(i["source"], i["target"]) for i in pg.get("visualInteractions", [])}
+    pg.setdefault("visualInteractions", [])
+    pg["visualInteractions"] += [{"source": a, "target": b, "type": "DataFilter"}
+                                 for a in data for b in data if a != b and (a, b) not in have]
+
+
 # --------------------------------------------------------------------------------------------
 # Pages
 # --------------------------------------------------------------------------------------------
@@ -647,6 +659,7 @@ def main() -> None:
     for build in (page_summary, page_products, page_customers, page_regions, page_product_detail,
                   page_region_detail, page_tooltip):
         pg, visuals = build()
+        cross_filter_all(pg, visuals)
         names = set()
         for node in visuals:
             if node["name"] in names:

@@ -129,6 +129,106 @@
       "source": "vFYRD",
       "target": "vMonthlyRD",
       "type": "NoFilter"
+    },
+    {
+      "source": "vMonthlyRD",
+      "target": "vMixRD",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vMonthlyRD",
+      "target": "vTopRD",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vMonthlyRD",
+      "target": "vCatGrowthRD",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vMonthlyRD",
+      "target": "vSubGrowthRD",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vMixRD",
+      "target": "vMonthlyRD",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vMixRD",
+      "target": "vTopRD",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vMixRD",
+      "target": "vCatGrowthRD",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vMixRD",
+      "target": "vSubGrowthRD",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vTopRD",
+      "target": "vMonthlyRD",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vTopRD",
+      "target": "vMixRD",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vTopRD",
+      "target": "vCatGrowthRD",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vTopRD",
+      "target": "vSubGrowthRD",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vCatGrowthRD",
+      "target": "vMonthlyRD",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vCatGrowthRD",
+      "target": "vMixRD",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vCatGrowthRD",
+      "target": "vTopRD",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vCatGrowthRD",
+      "target": "vSubGrowthRD",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vSubGrowthRD",
+      "target": "vMonthlyRD",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vSubGrowthRD",
+      "target": "vMixRD",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vSubGrowthRD",
+      "target": "vTopRD",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vSubGrowthRD",
+      "target": "vCatGrowthRD",
+      "type": "DataFilter"
     }
   ]
 }

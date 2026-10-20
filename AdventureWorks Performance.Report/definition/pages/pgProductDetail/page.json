@@ -158,6 +158,106 @@
       "source": "vFYPD",
       "target": "vMonthlyPD",
       "type": "NoFilter"
+    },
+    {
+      "source": "vMonthlyPD",
+      "target": "vMarginPD",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vMonthlyPD",
+      "target": "vRegionsPD",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vMonthlyPD",
+      "target": "vBuyersPD",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vMonthlyPD",
+      "target": "vItemsPD",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vMarginPD",
+      "target": "vMonthlyPD",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vMarginPD",
+      "target": "vRegionsPD",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vMarginPD",
+      "target": "vBuyersPD",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vMarginPD",
+      "target": "vItemsPD",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vRegionsPD",
+      "target": "vMonthlyPD",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vRegionsPD",
+      "target": "vMarginPD",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vRegionsPD",
+      "target": "vBuyersPD",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vRegionsPD",
+      "target": "vItemsPD",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vBuyersPD",
+      "target": "vMonthlyPD",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vBuyersPD",
+      "target": "vMarginPD",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vBuyersPD",
+      "target": "vRegionsPD",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vBuyersPD",
+      "target": "vItemsPD",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vItemsPD",
+      "target": "vMonthlyPD",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vItemsPD",
+      "target": "vMarginPD",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vItemsPD",
+      "target": "vRegionsPD",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vItemsPD",
+      "target": "vBuyersPD",
+      "type": "DataFilter"
     }
   ]
 }

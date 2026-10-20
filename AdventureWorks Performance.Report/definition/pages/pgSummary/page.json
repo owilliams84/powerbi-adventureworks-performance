@@ -54,6 +54,106 @@
       "source": "vFYSum",
       "target": "vSeasonSum",
       "type": "NoFilter"
+    },
+    {
+      "source": "vMonthlySum",
+      "target": "vSeasonSum",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vMonthlySum",
+      "target": "vWaterfallSum",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vMonthlySum",
+      "target": "vTreemapSum",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vMonthlySum",
+      "target": "vRegionsSum",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vSeasonSum",
+      "target": "vMonthlySum",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vSeasonSum",
+      "target": "vWaterfallSum",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vSeasonSum",
+      "target": "vTreemapSum",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vSeasonSum",
+      "target": "vRegionsSum",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vWaterfallSum",
+      "target": "vMonthlySum",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vWaterfallSum",
+      "target": "vSeasonSum",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vWaterfallSum",
+      "target": "vTreemapSum",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vWaterfallSum",
+      "target": "vRegionsSum",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vTreemapSum",
+      "target": "vMonthlySum",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vTreemapSum",
+      "target": "vSeasonSum",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vTreemapSum",
+      "target": "vWaterfallSum",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vTreemapSum",
+      "target": "vRegionsSum",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vRegionsSum",
+      "target": "vMonthlySum",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vRegionsSum",
+      "target": "vSeasonSum",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vRegionsSum",
+      "target": "vWaterfallSum",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vRegionsSum",
+      "target": "vTreemapSum",
+      "type": "DataFilter"
     }
   ]
 }

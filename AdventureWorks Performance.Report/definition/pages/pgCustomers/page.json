@@ -59,6 +59,156 @@
       "source": "vChCst",
       "target": "vMixCst",
       "type": "NoFilter"
+    },
+    {
+      "source": "vNewRetCst",
+      "target": "vChannelsCst",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vNewRetCst",
+      "target": "vMixCst",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vNewRetCst",
+      "target": "vWhoCst",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vNewRetCst",
+      "target": "vOrderSizeCst",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vNewRetCst",
+      "target": "vResellersCst",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vChannelsCst",
+      "target": "vNewRetCst",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vChannelsCst",
+      "target": "vMixCst",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vChannelsCst",
+      "target": "vWhoCst",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vChannelsCst",
+      "target": "vOrderSizeCst",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vChannelsCst",
+      "target": "vResellersCst",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vMixCst",
+      "target": "vNewRetCst",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vMixCst",
+      "target": "vChannelsCst",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vMixCst",
+      "target": "vWhoCst",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vMixCst",
+      "target": "vOrderSizeCst",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vMixCst",
+      "target": "vResellersCst",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vWhoCst",
+      "target": "vNewRetCst",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vWhoCst",
+      "target": "vChannelsCst",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vWhoCst",
+      "target": "vMixCst",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vWhoCst",
+      "target": "vOrderSizeCst",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vWhoCst",
+      "target": "vResellersCst",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vOrderSizeCst",
+      "target": "vNewRetCst",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vOrderSizeCst",
+      "target": "vChannelsCst",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vOrderSizeCst",
+      "target": "vMixCst",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vOrderSizeCst",
+      "target": "vWhoCst",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vOrderSizeCst",
+      "target": "vResellersCst",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vResellersCst",
+      "target": "vNewRetCst",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vResellersCst",
+      "target": "vChannelsCst",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vResellersCst",
+      "target": "vMixCst",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vResellersCst",
+      "target": "vWhoCst",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vResellersCst",
+      "target": "vOrderSizeCst",
+      "type": "DataFilter"
     }
   ]
 }

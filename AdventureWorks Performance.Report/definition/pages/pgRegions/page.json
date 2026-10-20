@@ -43,5 +43,107 @@
         }
       }
     ]
-  }
+  },
+  "visualInteractions": [
+    {
+      "source": "vMatrixReg",
+      "target": "vRegionsReg",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vMatrixReg",
+      "target": "vGrowthReg",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vMatrixReg",
+      "target": "vDiscountReg",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vMatrixReg",
+      "target": "vVolumeReg",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vRegionsReg",
+      "target": "vMatrixReg",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vRegionsReg",
+      "target": "vGrowthReg",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vRegionsReg",
+      "target": "vDiscountReg",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vRegionsReg",
+      "target": "vVolumeReg",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vGrowthReg",
+      "target": "vMatrixReg",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vGrowthReg",
+      "target": "vRegionsReg",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vGrowthReg",
+      "target": "vDiscountReg",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vGrowthReg",
+      "target": "vVolumeReg",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vDiscountReg",
+      "target": "vMatrixReg",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vDiscountReg",
+      "target": "vRegionsReg",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vDiscountReg",
+      "target": "vGrowthReg",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vDiscountReg",
+      "target": "vVolumeReg",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vVolumeReg",
+      "target": "vMatrixReg",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vVolumeReg",
+      "target": "vRegionsReg",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vVolumeReg",
+      "target": "vGrowthReg",
+      "type": "DataFilter"
+    },
+    {
+      "source": "vVolumeReg",
+      "target": "vDiscountReg",
+      "type": "DataFilter"
+    }
+  ]
 }
